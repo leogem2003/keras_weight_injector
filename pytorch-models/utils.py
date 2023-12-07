@@ -20,7 +20,7 @@ def parse_args():
     :return: The parsed argument of the network
     """
 
-    parser = argparse.ArgumentParser(description='Run a fault injection campaign',
+    parser = argparse.ArgumentParser(description='Run Inferences',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--forbid-cuda', action='store_true',
