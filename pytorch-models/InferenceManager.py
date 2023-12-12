@@ -78,14 +78,14 @@ class InferenceManager:
                 self.clean_output_indices.append(indices)
                 self.clean_labels.append(label)
 
-        # # COMPUTE THE ACCURACY OF THE NEURAL NETWORK
-        # # Element-wise comparison
-        # elementwise_comparison = [label != indices for label, indices in zip(self.clean_labels, self.clean_output_indices)]
-        # # Count the number of different elements
-        # num_different_elements = elementwise_comparison.count(True)
-        # print(f"The DNN wrong predicions are: {num_different_elements}")
-        # accuracy= (1 - num_different_elements/dataset_size)*100
-        # print(f"The final accuracy is: {accuracy}%")
+         # COMPUTE THE ACCURACY OF THE NEURAL NETWORK
+         # Element-wise comparison
+         elementwise_comparison = [label != index for labels, indices in zip(self.clean_labels, self.clean_output_indices) for label, index in zip(labels, indices)]          
+         # Count the number of different elements
+         num_different_elements = elementwise_comparison.count(True)
+         print(f"The DNN wrong predicions are: {num_different_elements}")
+         accuracy= (1 - num_different_elements/dataset_size)*100
+         print(f"The final accuracy is: {accuracy}%")
         
         # Stop measuring the time
         elapsed = math.ceil(time.time() - start_time)
