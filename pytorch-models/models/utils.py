@@ -73,11 +73,11 @@ def load_CIFAR10_datasets(train_batch_size=32, train_split=0.8, test_batch_size=
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),   # Normalize the data (stability for training)
     ])
 
-    train_dataset = CIFAR10('weights/files/',
+    train_dataset = CIFAR10('datasets/files/',
                             train=True,
                             transform=transform_train,
                             download=True)
-    test_dataset = CIFAR10('weights/files/',
+    test_dataset = CIFAR10('datasets/files/',
                            train=False,
                            transform=transform_test,
                            download=True)

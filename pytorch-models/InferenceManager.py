@@ -78,11 +78,13 @@ class InferenceManager:
                 self.clean_output_indices.append(indices)
                 self.clean_labels.append(label)
 
-        # COMPUTE THE ACCURACY OF THE NEURAL NETWORK
-        # Element-wise comparison
-        elementwise_comparison = self.clean_labels != self.clean_output_indices
-        # Count the number of different elements
-        num_different_elements = np.count_nonzero(elementwise_comparison)
+        # COMPUTE THE ACCURACY OF THE NEURAL NETWORK       
+        # Element-wise comparison for each pair of lists
+  
+        elementwise_comparison = [label != index for labels, indices in zip(self.clean_labels, self.clean_output_indices) for label, index in zip(labels, indices)]          
+        
+        # Count the number of True values in the list
+        num_different_elements = elementwise_comparison.count(True)
         print(f"The DNN wrong predicions are: {num_different_elements}")
         accuracy= (1 - num_different_elements/dataset_size)*100
         print(f"The final accuracy is: {accuracy}%")
@@ -111,7 +113,7 @@ class InferenceManager:
  
         # Get the score and the indices of the predictions
         prediction_scores = network_output.cpu()
+        
         prediction_indices = [int(fault) for fault in prediction.indices]
-
         return prediction_scores, prediction_indices
 
