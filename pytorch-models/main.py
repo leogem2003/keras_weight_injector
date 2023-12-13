@@ -7,17 +7,19 @@ from utils import load_network, get_device, parse_args
 def main(args):
 
     # Set deterministic algorithms
-    torch.use_deterministic_algorithms(mode=True)
+    torch.use_deterministic_algorithms(mode=False)
 
     # Select the device
     device = get_device(forbid_cuda=args.forbid_cuda,
                         use_cuda=args.use_cuda)
+    
     print(f'Using device {device}')
 
     # Load the dataset
     if 'ResNet' in args.network_name:
         _, _, loader = load_CIFAR10_datasets(test_batch_size=args.batch_size)
         print(f"Using dataset: CIFAR10")
+        
     else:
         loader = load_ImageNet_validation_set(batch_size=args.batch_size,
                                               image_per_class=1)

@@ -86,6 +86,7 @@ class InferenceManager:
         print(f"The DNN wrong predicions are: {num_different_elements}")
         accuracy= (1 - num_different_elements/dataset_size)*100
         print(f"The final accuracy is: {accuracy}%")
+
         
         # Stop measuring the time
         elapsed = math.ceil(time.time() - start_time)
@@ -111,7 +112,7 @@ class InferenceManager:
  
         # Get the score and the indices of the predictions
         prediction_scores = network_output.cpu()
+        
         prediction_indices = [int(fault) for fault in prediction.indices]
-
         return prediction_scores, prediction_indices
 
