@@ -6,9 +6,6 @@ import torch
 from models.utils import load_from_dict
 from models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110, resnet1202
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, densenet121, DenseNet121_Weights
-import numpy as np
-import torchvision.models as models
-from scipy.stats import norm
 
 class UnknownNetworkException(Exception):
     pass
@@ -34,7 +31,7 @@ def parse_args():
                         help='Target network',
                         choices=['ResNet20', 'ResNet32', 'ResNet44', 'ResNet56', 'ResNet110', 'ResNet1202',
                                  'DenseNet121'])
-
+    parser.add_argument('--tensorflow', '--tf', help='Execute the network in TensorFlow. Convert it a conversion does not exists', action='store_true')
     parsed_args = parser.parse_args()
 
     return parsed_args

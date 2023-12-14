@@ -21,16 +21,22 @@ It is possible to execute inferences with available GPUs sepcifing the argument 
 By default, results are saved in ```.pt``` files in the ```output/network_name/pt``` folder. 
 
 ## Available Models (so far)
+
+The TensorFlow versions of the models, when available, are converted using the [nobuco](https://github.com/AlexanderLutsenko/nobuco) PyTorch to Tensorflow converter, and have the same accuracy of the PyTorch models.
+
 ### ResNet Models
 
-| Model        | Description                   | Tool         |
-| ------------ | ----------------------------- | ------------ |
-| ResNet20     | 20-layer Residual Network     | PyTorch      |
-| ResNet32     | 32-layer Residual Network     | PyTorch      |
-| ResNet44     | 44-layer Residual Network     | PyTorch      |
-| ResNet56     | 56-layer Residual Network     | PyTorch      |
-| ResNet110    | 110-layer Residual Network    | PyTorch      |
-| ResNet1202   | 1202-layer Residual Network   | PyTorch      |
+ResNet models are trained on CIFAR-10. 
+
+
+| Model        | Description                   | PyTorch                 | Tensorflow         | Accuracy |
+| ------------ | ----------------------------- | ----------------------- |--------------------|----------|
+| ResNet20     | 20-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 91.48 %  |
+| ResNet32     | 32-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 92.34 %  |
+| ResNet44     | 44-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 92.76 %  |
+| ResNet56     | 56-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 93.27 %  | 
+| ResNet110    | 110-layer Residual Network    | :white_check_mark:      | :white_check_mark: | 93.5  %  |
+| ResNet1202   | 1202-layer Residual Network   | :white_check_mark:      | :white_check_mark: | 93.5  %  |
 
 
 ## Prerequisites 

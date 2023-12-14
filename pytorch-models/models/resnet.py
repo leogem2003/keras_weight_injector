@@ -1,4 +1,5 @@
 # https://github.com/akamaster/pytorch_resnet_cifar10
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
@@ -48,7 +49,8 @@ class BasicBlock(nn.Module):
                 )
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.conv1(x)
+        out = F.relu(self.bn1(out))
         out = self.bn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
@@ -84,7 +86,8 @@ class ResNet(nn.Module):
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
-        out = F.avg_pool2d(out, out.size()[3])
+        b, c, h, w = out.size()
+        out = F.avg_pool2d(out, int(w))
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
