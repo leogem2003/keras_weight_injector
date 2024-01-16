@@ -17,7 +17,7 @@ def main(args):
 
     # Load the dataset
     if 'ResNet' in args.network_name:
-        _, _, loader = load_CIFAR10_datasets(test_batch_size=args.batch_size)
+        _, _, loader = load_CIFAR10_datasets(test_batch_size=args.batch_size, permute_tf=args.tensorflow)
         print(f"Using dataset: CIFAR10")
         
     else:
@@ -26,13 +26,21 @@ def main(args):
     if args.tensorflow:
         # Import inference manager only here to avoid importing tensorflow for pytorch users
         from TFInferenceManager import TFInferenceManager
-        from tf_utils import load_converted_tf_network
+        from tf_utils import load_converted_tf_network, clone_model
+        import keras
         tf_network = load_converted_tf_network(args.network_name)
 
+        tf_network.summary()
+        temp_tf_network = keras.models.clone_model(tf_network)
+        temp_tf_network.set_weights(tf_network.get_weights())
+
+        cloned_model = clone_model(temp_tf_network, temp_tf_network.layers[0], temp_tf_network.layers[-2], verbose=True)
+
         # Execute the fault injection campaign with the smart network
-        inference_executor = TFInferenceManager(network=tf_network,
+        inference_executor = TFInferenceManager(network=cloned_model,
                                                 network_name=args.network_name,
                                                 loader=loader)
+
     else:
         # Import inference manager only here to avoid importing pytorch for tensorflow users
 

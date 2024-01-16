@@ -7,10 +7,23 @@ from torch.utils.data import TensorDataset
 from torchvision import transforms
 from torchvision.datasets import CIFAR10, ImageNet
 
+    
+
+class PermuteToTensorFlow:
+    """Rotate by one of the given angles."""
+
+    def __call__(self, x):
+        return  x.permute(1,2,0).contiguous()
+
+class Identity:
+    """Rotate by one of the given angles."""
+
+    def __call__(self, x):
+        return x
 
 def load_ImageNet_validation_set(batch_size,
                                  image_per_class=None,
-                                 imagenet_folder='~/Datasets/ImageNet'):
+                                 imagenet_folder='~/Datasets/ImageNet', permute_tf = False):
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -20,6 +33,7 @@ def load_ImageNet_validation_set(batch_size,
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         normalize,
+        PermuteToTensorFlow() if permute_tf else Identity()
     ])
 
     validation_dataset_folder = 'tmp'
@@ -59,7 +73,7 @@ def load_ImageNet_validation_set(batch_size,
     return val_loader
 
 
-def load_CIFAR10_datasets(train_batch_size=32, train_split=0.8, test_batch_size=1, test_image_per_class=None):
+def load_CIFAR10_datasets(train_batch_size=32, train_split=0.8, test_batch_size=1, test_image_per_class=None, permute_tf = False):
 
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),                                       # Crop the image to 32x32
@@ -71,6 +85,7 @@ def load_CIFAR10_datasets(train_batch_size=32, train_split=0.8, test_batch_size=
         transforms.CenterCrop(32),                                                  # Crop the image to 32x32
         transforms.ToTensor(),                                                      # Transform from image to pytorch tensor
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),   # Normalize the data (stability for training)
+        PermuteToTensorFlow() if permute_tf else Identity()
     ])
 
     train_dataset = CIFAR10('datasets/files/',

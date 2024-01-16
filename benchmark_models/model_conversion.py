@@ -14,38 +14,61 @@ from tensorflow import keras
 import argparse
 
 import nobuco
-from nobuco import ChannelOrder, converter
+from nobuco import ChannelOrder, converter, ChannelOrderingStrategy
 
 # NOBUCO converters for missing operators
 
-@converter(torch.nn.Sequential)
+@converter(torch.nn.Sequential,     channel_ordering_strategy= ChannelOrderingStrategy.FORCE_TENSORFLOW_ORDER)
 def convert_Sequential(self, x):
     kwargs = {'return_outputs_pt': True, 'trace_shape': True}
-    tf_sequential = tf.keras.Sequential()
+    #tf_sequential = tf.keras.Sequential()
     temp_out = x
+
+    #for i, module in enumerate(self.children()):
+    #    b, c, h, w = temp_out.shape
+    #    seq_layer, seq_out = nobuco.pytorch_to_keras(module, input_shapes={input: (None, c, h, w)}, args=(temp_out,), **kwargs)
+    #    temp_out = seq_out
+    #    tf_sequential.add(seq_layer)
+
+    tf_layer_list = []
+
     for i, module in enumerate(self.children()):
-        b, c, h, w = temp_out.shape
-        seq_layer, seq_out = nobuco.pytorch_to_keras(module, input_shapes={input: (None, c, h, w)}, args=(temp_out,), **kwargs)
+        b, h, w, c = temp_out.shape
+        seq_layer, seq_out = nobuco.pytorch_to_keras(
+            module, 
+            input_shapes={input: (None, h, w, c)}, 
+            args=(temp_out,), 
+            inputs_channel_order=ChannelOrder.TENSORFLOW,
+            outputs_channel_order=ChannelOrder.TENSORFLOW,
+            **kwargs
+            )
         temp_out = seq_out
-        tf_sequential.add(seq_layer)
-    return tf_sequential
+        tf_layer_list.append(seq_layer)
+    
+
+    def func(inp):
+        temp = inp
+        for layer in tf_layer_list:
+            temp = layer(temp)
+        return temp            
+
+    return func
 
 
 
 def convert_pt_to_tf(network: Module, loader: DataLoader):
     sample_image, _ = next(iter(loader))
 
-
     print('Starting conversion from PyTorch to Keras')
     print(f'Using dataset sample image of shape: {sample_image.shape}')
 
-    b, c, h, w = sample_image.shape
+    b, h, w, c = sample_image.shape
     with torch.no_grad():
         keras_model = nobuco.pytorch_to_keras(
             network,
-            args=(sample_image,), kwargs=None, input_shapes={input: (None, c, h, w)}, trace_shape=True,
-            inputs_channel_order=ChannelOrder.PYTORCH,
-            outputs_channel_order=ChannelOrder.PYTORCH,
+            args=(sample_image,), kwargs=None, input_shapes={input: (None, h, w, c)}, trace_shape=True,
+            inputs_channel_order=ChannelOrder.TENSORFLOW,
+            outputs_channel_order=ChannelOrder.TENSORFLOW,
         )
         print('Conversion from PyTorch to Keras complete.')
     return keras_model
@@ -82,14 +105,14 @@ def parse_args():
     return parsed_args
 
 
-def prepare_loader(network_name, batch_size):
+def prepare_loader(network_name, batch_size, permute_tf=False):
     # Load the dataset
     if 'ResNet' in network_name:
-        _, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size)
+        _, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size, permute_tf=permute_tf)
         print(f"Using dataset: CIFAR10")
     else:
         loader = load_ImageNet_validation_set(batch_size=batch_size,
-                                              image_per_class=1)
+                                              image_per_class=1, permute_tf=permute_tf)
     return loader
 
 def main(args):
@@ -117,9 +140,9 @@ def main(args):
                            device=device)
     network.eval()
 
-    conversion_loader = prepare_loader(args.network_name, 1)
+    conversion_loader = prepare_loader(args.network_name, 1, permute_tf=False)
 
-    print('Starting convertion to TensorFlow')
+    print('Starting conversion to TensorFlow')
     with torch.no_grad():
         keras_model = convert_pt_to_tf(network, conversion_loader)
         print('Tensorflow conversion complete. See nobuco output for info.')
@@ -129,24 +152,27 @@ def main(args):
 
     reloaded_keras_model = keras.models.load_model(output_path)
 
+    reloaded_keras_model.summary(expand_nested=True)
+
     if not args.skip_validation:
         from InferenceManager import InferenceManager
         from TFInferenceManager import TFInferenceManager
         print('Validation of the converted model')
         print('STEP 1. Running original model in PyTorch')
         
-        validation_loader = prepare_loader(args.network_name, args.batch_size)
+        validation_loader_pt = prepare_loader(args.network_name, args.batch_size, permute_tf=False)
+        validation_loader_tf = prepare_loader(args.network_name, args.batch_size, permute_tf=True)
 
         inference_executor = InferenceManager(network=network,
                                                 network_name=args.network_name,
                                                 device=device,
-                                                loader=validation_loader)
+                                                loader=validation_loader_pt)
         inference_executor.run_clean(save_outputs=False)
         # Run inference for the TF converted network to compare the value
         print('STEP 2. Running converted model in TensorFlow')
         tf_inference_executor = TFInferenceManager(network=reloaded_keras_model,
                                                 network_name=args.network_name,
-                                                loader=validation_loader)
+                                                loader=validation_loader_tf)
         tf_inference_executor.run_clean(save_outputs=False)
         print('Validation completed')
     else:
