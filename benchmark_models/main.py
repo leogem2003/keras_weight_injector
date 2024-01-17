@@ -3,6 +3,7 @@ import torch
 from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets
 
 from utils import load_network, get_device, parse_args
+from classes_core.error_simulator_keras import create_injection_sites_layer_simulator, ErrorSimulator
 
 
 def main(args):
@@ -33,27 +34,9 @@ def main(args):
 
         tf_network = load_converted_tf_network(args.network_name)
 
-        tf_network.summary()
-        temp_tf_network = keras.models.clone_model(tf_network)
-        temp_tf_network.set_weights(tf_network.get_weights())
-
-        def factory(layer, inputs):
-            if False:  # layer.name == 'conv2d':
-                return keras.layers.ReLU()
-            else:
-                return None
-
-        cloned_model = clone_model(
-            temp_tf_network,
-            temp_tf_network.layers[0],
-            temp_tf_network.layers[-2],
-            layer_factory=factory,
-            verbose=True,
-        )
-
         # Execute the fault injection campaign with the smart network
         inference_executor = TFInferenceManager(
-            network=cloned_model, network_name=args.network_name, loader=loader
+            network=tf_network, network_name=args.network_name, loader=loader
         )
 
     else:

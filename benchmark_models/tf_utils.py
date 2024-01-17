@@ -1,6 +1,4 @@
 import os
-from pyparsing import Optional
-
 import tensorflow as tf
 import keras
 from keras.src.engine import functional
@@ -8,7 +6,7 @@ from keras.src.layers import Layer
 from keras.src.engine.keras_tensor import KerasTensor
 
 from collections import defaultdict
-from typing import Callable, List, Literal, Dict, Union
+from typing import Callable, List, Dict, Union, Optional
 from collections.abc import Sized
 
 
