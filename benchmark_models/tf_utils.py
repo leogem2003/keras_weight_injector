@@ -102,8 +102,8 @@ def toposort_graph(adj_list: Dict[Layer, List[Layer]]) -> Dict[Layer, List[Layer
         Returns an ordered dictionary, with the same semantics of the input adjacency list, but sorted by topological order of the keras Layers.
     """
     # The algorithm uses the DFS strategy, starting from a random node and fiding all the nodes of the DAG that have no non-marked dependants
-
-    # Internal dfs algorithm that discovers the terminal nodes and marks them
+       
+    # Internal dfs algorithm that discovers the terminal nodes and marks them 
     def dfs_internal(node: Layer):
         temp_marked = set()
         if node not in nodes_not_perm_marked:
@@ -131,9 +131,7 @@ def toposort_graph(adj_list: Dict[Layer, List[Layer]]) -> Dict[Layer, List[Layer
     return dict(reversed(sorted_adj_list.items()))
 
 
-def remap_adj_list_keys_to_str(
-    adj_list: Dict[Layer, List[Layer]]
-) -> Dict[str, List[Layer]]:
+def remap_adj_list_keys_to_str(adj_list : Dict[Layer, List[Layer]]) -> Dict[str, List[Layer]]:
     # DEBUG METHOD for accessing nodes by their names
     remapped_adj_list = {}
     for edge_from, edges_to_list in adj_list.items():
@@ -142,12 +140,10 @@ def remap_adj_list_keys_to_str(
 
 
 def clone_model(
-    model: keras.Model,
-    input_layers: Union[List[Layer], Layer],
-    output_layers: Union[List[Layer], Layer],
-    layer_factory: Callable[
-        [Layer, KerasTensor], Optional[Layer]
-    ] = lambda layer, inputs: keras.layers.Identity(),
+    model : keras.Model,
+    input_layers : Union[List[Layer], Layer],
+    output_layers : Union[List[Layer], Layer],
+    layer_factory : Callable[[Layer, KerasTensor], Optional[Layer]] = lambda layer, inputs: keras.layers.Identity(),
     copy_weights=True,
     verbose=False,
 ) -> keras.Model:
@@ -157,21 +153,26 @@ def clone_model(
 
     Args:
         model: The keras model that will be cloned.
-        input_layers: The input layer or a list of layers containing all the input layers of the original model
-        output_layers: The output layer or a list of layers containing all the output layers of the original model.
-            Note that in keras the output of a model is not layer but the tensors returned by that layers. Differently than keras,
+
+        input_layers: The input layer or a list of layers containing all the input layers of the original model.
+
+        output_layers: The output layer or a list of layers containing all the output layers of the original model. 
+            Note that in keras the output of a model is not layer but the tensors returned by that layers. Differently than keras, 
             this argument must contain the layers that direclty produce those output tensors.
+
         layer_factory: A callback that is used to decide where and which new layers add to the model.
             The callback is called before cloning each layer, and receives two parameters, the layer object that will is currently being cloned an
             the input tensors of that layer. If the callback returns a layer, that layer will be added after the layer currently being cloned.
             If the callback returns None, no new layer will be added in this occasion. If no callback is specified, no layers will be added.
+
         copy_weights: If true the weights of the old model, will be copied to the cloned model. If layers with weights are added to the cloned model,
             the copy will fail. Defaults to True.
-        verbose: Enable additional logging to stdout. Defaults to False.
 
+        verbose: Enable additional logging to stdout. Defaults to False.
+        
 
     Returns:
-        Returns a cloned model of the original one with eventual new layers added as specfied, and if desired with old model's weights copied in the new one
+        Returns a cloned model of the original one with eventual new layers added as specfied, and if desired with old model's weights copied in the new one.
     """
     toposorted_adj_list = toposort_graph(explore_topology(model))
     rev_adj_list = reverse_adj_list(toposorted_adj_list)
