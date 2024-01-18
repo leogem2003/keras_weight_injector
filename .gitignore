@@ -3,4 +3,6 @@ output/
 datasets/
 weights/
 .python-version
-benchmark_models/models/pretrained_models/cifar10/
+benchmark_models/models/pretrained_models/cifar10/*
+benchmark_models/models/pretrained_models/cifar100/*
+benchmark_models/models/pretrained_models/imagenet/*
