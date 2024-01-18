@@ -6,10 +6,8 @@ Mobile Networks for Classification, Detection and Segmentation" for more details
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import time
-from torchmetrics.regression import MinkowskiDistance
-from torchmetrics.image import PeakSignalNoiseRatio
-from torchmetrics.audio import SignalNoiseRatio
+
+
 
 class Block(nn.Module):
     '''expand + depthwise + pointwise'''
@@ -60,8 +58,7 @@ class MobileNetV2(nn.Module):
         self.bn2 = nn.BatchNorm2d(1280)
         self.linear = nn.Linear(1280, num_classes)
         
-        #time required
-        # self.inference_time_list = []
+     
 
     def _make_layers(self, in_planes):
         layers = []
@@ -74,15 +71,9 @@ class MobileNetV2(nn.Module):
 
     def forward(self, x):
         
-        # time consumption 
-        # start_time = time.time()
+    
         
         out = F.relu(self.bn1(self.conv1(x)))
-        
-        # function to compute
-        # func = SignalNoiseRatio()
-        # var = func(out, out)
-        
         out = self.layers(out)
         out = F.relu(self.bn2(self.conv2(out)))
         # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
@@ -90,21 +81,7 @@ class MobileNetV2(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         
-        # time computation part (must be commented on during fault injection)
-        # end_time = time.time()
-        # inference_time = end_time - start_time
-        # self.inference_time_list.append(inference_time)
-        # mean_value = sum(self.inference_time_list) / len(self.inference_time_list)
-
-
-        # if len(self.inference_time_list) == 100:
-        #     print(f" Average Inference time after {len(self.inference_time_list)} images: {mean_value} seconds")
-
-        # if len(self.inference_time_list) == 250:
-        #     print(f" Average Inference time after {len(self.inference_time_list)} images: {mean_value} seconds")
-
-        # if len(self.inference_time_list) == 500:
-        #     print(f" Average Inference time after {len(self.inference_time_list)} images: {mean_value} seconds")
+ 
 
 
         return out
