@@ -6,7 +6,7 @@ from keras.src.layers import Layer
 from keras.src.engine.keras_tensor import KerasTensor
 
 from collections import defaultdict
-from typing import Callable, List, Dict, Union, Optional
+from typing import Callable, Iterable, List, Dict, Union, Optional
 from collections.abc import Sized
 
 
@@ -139,9 +139,9 @@ def remap_adj_list_keys_to_str(adj_list : Dict[Layer, List[Layer]]) -> Dict[str,
 
 def clone_model(
     model : keras.Model,
-    input_layers : Union[List[Layer], Layer],
-    output_layers : Union[List[Layer], Layer],
-    layer_factory : Callable[[Layer, KerasTensor], Optional[Layer]] = lambda layer, inputs: keras.layers.Identity(),
+    input_layers : Union[Iterable[Layer], Layer],
+    output_layers : Union[Iterable[Layer], Layer, None] = None,
+    layer_factory : Callable[[Layer, Iterable[KerasTensor], KerasTensor], Optional[Layer]] = lambda layer, inputs: keras.layers.Identity(),
     copy_weights=True,
     verbose=False,
 ) -> keras.Model:
@@ -178,7 +178,7 @@ def clone_model(
     if not isinstance(input_layers, Sized):
         input_layers = [input_layers]
 
-    if not isinstance(output_layers, Sized):
+    if output_layers is not None and not isinstance(output_layers, Sized):
         output_layers = [output_layers]
 
     # Clone the inputs in order to create a separate graph
@@ -201,42 +201,53 @@ def clone_model(
             intermediate_tensors[inbound_node] for inbound_node in inbound_nodes_list
         ]
 
-        layer_to_inject = layer_factory(curr_layer, layer_inputs)
-
         # Additional kwargs are stored in the inbound node
         call_kwargs: dict = curr_layer._inbound_nodes[0].call_kwargs
         # TODO: Tricky workaround to remove duplicated arguments for binary operators
         if len(inbound_nodes_list) == 2:
             if "y" in call_kwargs:
                 del call_kwargs["y"]
+            if "shape" in call_kwargs:
+                del call_kwargs["shape"]
         if verbose:
-            print(f"{i}. Building layer: {curr_layer.name} ({curr_layer})")
+            print(f"{i}. Layer: ({curr_layer})")
+            print(f"\t* Name: {curr_layer.name}")
             print(
-                f'{i}. Operands: {[inp.name if hasattr(inp, "name") else inp for inp in layer_inputs]} ({layer_inputs})'
+                f'\t* Operands ({len(layer_inputs)}): '
             )
-            print(f"{i}. Additional kwargs: {call_kwargs}")
+            for inp in layer_inputs:
+                if hasattr(inp, "name"):
+                    print(f'\t\t- {inp}')
+                else:
+                    print(f'\t\t- {inp}')
+            print(f"\t* Additional kwargs: {call_kwargs}")
+            print("")
         # Call the layer to build the graph
         # Put the intermediate tensors coming from the inbound layers as positional
         # and additional configuration kwargs
-        intermediate_tensors[curr_layer] = curr_layer(*layer_inputs, **call_kwargs)
+        layer_output = curr_layer(*layer_inputs, **call_kwargs)
+
+        layer_to_inject = layer_factory(curr_layer, layer_inputs, layer_output)
+        intermediate_tensors[curr_layer] = layer_output
         if layer_to_inject is not None:
             if verbose:
                 print(
-                    f"{i}. INJECTION !!!: Injecting a custom layer after {curr_layer}"
+                    f"\t* INJECTED LAYER: {layer_to_inject}"
                 )
             intermediate_tensors[curr_layer] = layer_to_inject(
-                intermediate_tensors[curr_layer]
+                layer_output
             )
+        else:
+            intermediate_tensors[curr_layer] = layer_output
+
+    if output_layers is None:
+        output_layers = [curr_layer]
 
     outputs = [
         res for layer, res in intermediate_tensors.items() if layer in output_layers
     ]
 
     if verbose:
-        print("---")
-        print("Intermediate Results:")
-        for layer, tensor in intermediate_tensors.items():
-            print(f"{layer.name}: {tensor}")
         print("---")
         print(
             "Assembled model. Now calling keras.Model constructor with the following kwargs"

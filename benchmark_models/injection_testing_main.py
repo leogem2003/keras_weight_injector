@@ -24,7 +24,7 @@ def main(args):
 
     else:
         loader = load_ImageNet_validation_set(
-            batch_size=args.batch_size, image_per_class=1
+            batch_size=args.batch_size, image_per_class=1, permute_tf=args.tensorflow
         )
     if args.tensorflow:
         # Import inference manager only here to avoid importing tensorflow for pytorch users
@@ -34,7 +34,8 @@ def main(args):
 
         tf_network = load_converted_tf_network(args.network_name)
 
-        tf_network.summary()
+        tf_network.summary(expand_nested=True)
+
         temp_tf_network = keras.models.clone_model(tf_network)
         temp_tf_network.set_weights(tf_network.get_weights())
 
@@ -44,15 +45,13 @@ def main(args):
             else:
                 return None
             
-        def classes_factory(layer, inputs):
- 
-
-            if layer.name == 'tf.nn.relu_16':
-                print(inputs[0].shape)
-                n, h, w, c = inputs[0].shape
+        def classes_factory(layer, inputs, output):
+            if layer.name == 'conv2d_3':
+                print(output.shape)
+                n, h, w, c = output.shape
                 available_injection_sites, masks = create_injection_sites_layer_simulator(
-                    1000,
-                    'relu',
+                    5,
+                    'conv_gemm',
                     str((1, c, h, w)),
                     str((1, h, w, c)),
                     models_folder='classes_models'
@@ -66,12 +65,12 @@ def main(args):
         cloned_model = clone_model(
             temp_tf_network,
             temp_tf_network.layers[0],
-            temp_tf_network.layers[-2],
             layer_factory=classes_factory,
             verbose=True,
+            copy_weights=True
         )
 
-
+        cloned_model.summary()
 
         # Execute the fault injection campaign with the smart network
         inference_executor = TFInferenceManager(

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
@@ -39,7 +40,7 @@ class VGG(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
-        x = x.view(x.size(0), -1)
+        x = nn.Flatten(start_dim=1)(x)
         x = self.classifier(x)
         return x
 

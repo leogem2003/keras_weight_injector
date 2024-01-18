@@ -4,7 +4,7 @@ from models.utils import load_ImageNet_validation_set
 
 from models.utils import load_CIFAR10_datasets
 
-from utils import get_device, load_network
+from utils import SUPPORTED_MODELS_LIST, get_device, load_network
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -37,10 +37,9 @@ def convert_Sequential(self, x):
     tf_layer_list = []
 
     for i, module in enumerate(self.children()):
-        b, h, w, c = temp_out.shape
         seq_layer, seq_out = nobuco.pytorch_to_keras(
             module,
-            input_shapes={input: (None, h, w, c)},
+            input_shapes={input: tuple([None] + list(temp_out.shape[1:]))},
             args=(temp_out,),
             inputs_channel_order=ChannelOrder.TENSORFLOW,
             outputs_channel_order=ChannelOrder.TENSORFLOW,
@@ -56,6 +55,17 @@ def convert_Sequential(self, x):
         return temp
 
     return func
+
+@converter(
+    torch.nn.modules.pooling.MaxPool2d,
+    channel_ordering_strategy=ChannelOrderingStrategy.MINIMUM_TRANSPOSITIONS,
+)
+def convert_Sequential(self : torch.nn.modules.pooling.MaxPool2d, x):
+    def func(x):
+        return keras.layers.MaxPooling2D(self.kernel_size, strides=self.stride, padding="same", data_format="channels_last")(x)
+    return func
+
+
 
 
 def convert_pt_to_tf(network: Module, loader: DataLoader):
@@ -107,15 +117,7 @@ def parse_args():
         type=str,
         required=True,
         help="Target network",
-        choices=[
-            "ResNet20",
-            "ResNet32",
-            "ResNet44",
-            "ResNet56",
-            "ResNet110",
-            "ResNet1202",
-            "DenseNet121",
-        ],
+        choices=SUPPORTED_MODELS_LIST,
     )
     parser.add_argument(
         "--overwrite",
@@ -222,6 +224,7 @@ def main(args):
         inference_executor.run_clean(save_outputs=False)
         # Run inference for the TF converted network to compare the value
         print("STEP 2. Running converted model in TensorFlow")
+
         tf_inference_executor = TFInferenceManager(
             network=reloaded_keras_model,
             network_name=args.network_name,

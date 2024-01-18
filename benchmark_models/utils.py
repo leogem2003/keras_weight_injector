@@ -5,6 +5,7 @@ import torch
 
 from models.utils import load_from_dict
 from models.resnet import resnet20, resnet32, resnet44, resnet56, resnet110, resnet1202
+from models.VGG import vgg11
 from torchvision.models import (
     efficientnet_b0,
     EfficientNet_B0_Weights,
@@ -12,6 +13,7 @@ from torchvision.models import (
     DenseNet121_Weights,
 )
 
+SUPPORTED_MODELS_LIST = ["ResNet20","ResNet32","ResNet44","ResNet56","ResNet110","ResNet1202","VGG11","VGG13"]
 
 class UnknownNetworkException(Exception):
     pass
@@ -45,15 +47,7 @@ def parse_args():
         type=str,
         required=True,
         help="Target network",
-        choices=[
-            "ResNet20",
-            "ResNet32",
-            "ResNet44",
-            "ResNet56",
-            "ResNet110",
-            "ResNet1202",
-            "DenseNet121",
-        ],
+        choices=SUPPORTED_MODELS_LIST,
     )
     parser.add_argument(
         "--tensorflow",
@@ -109,7 +103,9 @@ def load_network(network_name: str, device: torch.device) -> torch.nn.Module:
 
     elif network_name == "EfficientNet":
         network = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
-
+    elif "VGG" in network_name:
+        if network_name == "VGG11":
+            network = vgg11(pretrained=True)
     else:
         raise UnknownNetworkException(f"ERROR: unknown network: {network_name}")
 
