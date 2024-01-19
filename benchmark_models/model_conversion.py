@@ -4,7 +4,7 @@ from models.utils import load_ImageNet_validation_set
 
 from models.utils import load_CIFAR10_datasets
 
-from utils import SUPPORTED_MODELS_LIST, get_device, load_network
+from utils import SUPPORTED_MODELS_LIST, get_device, get_loader, load_network
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -136,8 +136,15 @@ def parse_args():
     parser.add_argument(
         "--skip-validation",
         action="store_true",
-        help="Skip compared validation between PyTorch and converted TensorFlow model.",
+        help="Entierly skip compared validation between PyTorch and converted TensorFlow model.",
     )
+
+    parser.add_argument(
+        "--skip-pt-validation",
+        action="store_true",
+        help="Validate only the Keras model, skipping the PyTorch validation.",
+    )
+
     parsed_args = parser.parse_args()
 
     return parsed_args
@@ -168,10 +175,7 @@ def main(args):
     if args.output_path is None:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    if os.path.exists(output_path) and not args.overwrite:
-        raise FileExistsError(
-            "Converted model already exists. To allow overwriting the current model use the --overwrite flag."
-        )
+    skip_conversion = os.path.exists(output_path) and not args.overwrite
 
     # Set deterministic algorithms
     torch.use_deterministic_algorithms(mode=True)
@@ -185,17 +189,21 @@ def main(args):
     network = load_network(network_name=args.network_name, device=device)
     network.eval()
 
-    conversion_loader = prepare_loader(args.network_name, 1, permute_tf=False)
+    _, conversion_loader = get_loader(network_name=args.network_name,
+                        batch_size=args.batch_size, permute_tf=False)
 
-    print("Starting conversion to TensorFlow")
-    with torch.no_grad():
-        keras_model = convert_pt_to_tf(network, conversion_loader)
-        print("Tensorflow conversion complete. See nobuco output for info.")
+    if not skip_conversion:
+        print("Starting conversion to TensorFlow")
+        with torch.no_grad():
+            keras_model = convert_pt_to_tf(network, conversion_loader)
+            print("Tensorflow conversion complete. See nobuco output for info.")
 
-    keras_model.save(output_path)
-    print(
-        f'Converted model saved to {output_path}. It can be loaded using keras.models.load_model("path/to/model")'
-    )
+        keras_model.save(output_path)
+        print(
+            f'Converted model saved to {output_path}. It can be loaded using keras.models.load_model("path/to/model")'
+        )
+    else:
+        print('Skipping conversion, reloading existing model.')
 
     reloaded_keras_model = keras.models.load_model(output_path)
 
@@ -208,12 +216,10 @@ def main(args):
         print("Validation of the converted model")
         print("STEP 1. Running original model in PyTorch")
 
-        validation_loader_pt = prepare_loader(
-            args.network_name, args.batch_size, permute_tf=False
-        )
-        validation_loader_tf = prepare_loader(
-            args.network_name, args.batch_size, permute_tf=True
-        )
+        _, validation_loader_pt = get_loader(network_name=args.network_name,
+                        batch_size=args.batch_size, permute_tf=False)
+        _, validation_loader_tf = get_loader(network_name=args.network_name,
+                        batch_size=args.batch_size, permute_tf=True)
 
         inference_executor = InferenceManager(
             network=network,
