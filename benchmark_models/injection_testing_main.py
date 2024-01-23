@@ -3,7 +3,10 @@ import torch
 from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets
 
 from utils import get_loader, load_network, get_device, parse_args
-from classes_core.error_simulator_keras import create_injection_sites_layer_simulator, ErrorSimulator
+from classes_core.error_simulator_keras import (
+    create_injection_sites_layer_simulator,
+    ErrorSimulator,
+)
 
 
 def main(args):
@@ -15,65 +18,61 @@ def main(args):
 
     print(f"Using device {device}")
 
-    _, loader = get_loader(network_name=args.network_name,
-                        batch_size=args.batch_size, permute_tf=args.tensorflow)
+    _, loader = get_loader(
+        network_name=args.network_name,
+        batch_size=args.batch_size,
+        permute_tf=args.tensorflow,
+    )
 
-    # Load the dataset
-    if "ResNet" in args.network_name:
-        _, _, loader = load_CIFAR10_datasets(
-            test_batch_size=args.batch_size, permute_tf=args.tensorflow
-        )
-        print(f"Using dataset: CIFAR10")
 
-    else:
-        loader = load_ImageNet_validation_set(
-            batch_size=args.batch_size, image_per_class=1, permute_tf=args.tensorflow
-        )
+    _, _, loader = load_CIFAR10_datasets(
+        test_batch_size=args.batch_size, permute_tf=args.tensorflow
+    )
+    print(f"Using dataset: CIFAR10")
+
     if args.tensorflow:
         # Import inference manager only here to avoid importing tensorflow for pytorch users
         from TFInferenceManager import TFInferenceManager
-        from tf_utils import load_converted_tf_network, clone_model
+        from tf_utils import load_converted_tf_network, create_manipulated_model
         import keras
 
         tf_network = load_converted_tf_network(args.network_name)
 
+        # Execute the fault injection campaign with the smart network
+        inference_executor = TFInferenceManager(
+            network=tf_network, network_name=args.network_name, loader=loader
+        )
         tf_network.summary(expand_nested=True)
+        inference_executor.run_clean(max_inferences=2)
 
-        temp_tf_network = keras.models.clone_model(tf_network)
-        temp_tf_network.set_weights(tf_network.get_weights())
-
-        def factory(layer, inputs):
-            if False:  # layer.name == 'conv2d':
-                return keras.layers.ReLU()
-            else:
-                return None
-            
-        def classes_factory(layer, inputs, output):
-            if layer.name == 'conv2d_3':
-                print(output.shape)
-                n, h, w, c = output.shape
-                available_injection_sites, masks = create_injection_sites_layer_simulator(
+        def classes_factory(layer, old_layer):
+            if layer.name == "re_lu_5":
+                print(old_layer.output_shape)
+                n, h, w, c = (None, 4, 4, 512)
+                (
+                    available_injection_sites,
+                    masks,
+                ) = create_injection_sites_layer_simulator(
                     5,
-                    'conv_gemm',
+                    "relu",
                     str((1, c, h, w)),
                     str((1, h, w, c)),
-                    models_folder='classes_models'
+                    models_folder="classes_models",
                 )
 
-                sim = ErrorSimulator(available_injection_sites, masks, len(available_injection_sites), [0])
-                return sim
+                sim = ErrorSimulator(
+                    available_injection_sites,
+                    masks,
+                    len(available_injection_sites),
+                    [0],
+                )
+                return keras.Sequential([layer, sim])
             else:
                 return None
 
-        cloned_model = clone_model(
-            temp_tf_network,
-            temp_tf_network.layers[0],
-            layer_factory=classes_factory,
-            verbose=True,
-            copy_weights=True
-        )
+        cloned_model = create_manipulated_model(tf_network, classes_factory)
 
-        cloned_model.summary()
+        cloned_model.summary(expand_nested=True)
 
         # Execute the fault injection campaign with the smart network
         inference_executor = TFInferenceManager(

@@ -30,9 +30,21 @@ class InferenceManager:
         self.clean_labels = list()
 
         # The output dir
-        self.label_output_dir = os.path.join('output', self.network_name, 'pt', 'label', f'batch_size_{self.loader.batch_size}')
+        self.label_output_dir = os.path.join(
+            "output",
+            self.network_name,
+            "pt",
+            "label",
+            f"batch_size_{self.loader.batch_size}",
+        )
 
-        self.clean_output_dir = os.path.join('output', self.network_name, 'pt', 'clean', f'batch_size_{self.loader.batch_size}')
+        self.clean_output_dir = os.path.join(
+            "output",
+            self.network_name,
+            "pt",
+            "clean",
+            f"batch_size_{self.loader.batch_size}",
+        )
 
         # Create the output dir
         os.makedirs(self.label_output_dir, exist_ok=True)

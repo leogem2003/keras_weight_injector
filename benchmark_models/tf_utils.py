@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 import keras
 from keras.src.engine import functional
-from keras.src.layers import Layer
+from keras.src.layers import Layer, InputLayer
 from keras.src.engine.keras_tensor import KerasTensor
 
 from collections import defaultdict
@@ -100,8 +100,8 @@ def toposort_graph(adj_list: Dict[Layer, List[Layer]]) -> Dict[Layer, List[Layer
         Returns an ordered dictionary, with the same semantics of the input adjacency list, but sorted by topological order of the keras Layers.
     """
     # The algorithm uses the DFS strategy, starting from a random node and fiding all the nodes of the DAG that have no non-marked dependants
-       
-    # Internal dfs algorithm that discovers the terminal nodes and marks them 
+
+    # Internal dfs algorithm that discovers the terminal nodes and marks them
     def dfs_internal(node: Layer):
         temp_marked = set()
         if node not in nodes_not_perm_marked:
@@ -129,7 +129,9 @@ def toposort_graph(adj_list: Dict[Layer, List[Layer]]) -> Dict[Layer, List[Layer
     return dict(reversed(sorted_adj_list.items()))
 
 
-def remap_adj_list_keys_to_str(adj_list : Dict[Layer, List[Layer]]) -> Dict[str, List[Layer]]:
+def remap_adj_list_keys_to_str(
+    adj_list: Dict[Layer, List[Layer]]
+) -> Dict[str, List[Layer]]:
     # DEBUG METHOD for accessing nodes by their names
     remapped_adj_list = {}
     for edge_from, edges_to_list in adj_list.items():
@@ -138,10 +140,12 @@ def remap_adj_list_keys_to_str(adj_list : Dict[Layer, List[Layer]]) -> Dict[str,
 
 
 def clone_model(
-    model : keras.Model,
-    input_layers : Union[Iterable[Layer], Layer],
-    output_layers : Union[Iterable[Layer], Layer, None] = None,
-    layer_factory : Callable[[Layer, Iterable[KerasTensor], KerasTensor], Optional[Layer]] = lambda layer, inputs: keras.layers.Identity(),
+    model: keras.Model,
+    input_layers: Union[Iterable[Layer], Layer],
+    output_layers: Union[Iterable[Layer], Layer, None] = None,
+    layer_factory: Callable[
+        [Layer, Iterable[KerasTensor], KerasTensor], Optional[Layer]
+    ] = lambda layer, inputs, output: None,
     copy_weights=True,
     verbose=False,
 ) -> keras.Model:
@@ -154,8 +158,8 @@ def clone_model(
 
         input_layers: The input layer or a list of layers containing all the input layers of the original model.
 
-        output_layers: The output layer or a list of layers containing all the output layers of the original model. 
-            Note that in keras the output of a model is not layer but the tensors returned by that layers. Differently than keras, 
+        output_layers: The output layer or a list of layers containing all the output layers of the original model.
+            Note that in keras the output of a model is not layer but the tensors returned by that layers. Differently than keras,
             this argument must contain the layers that direclty produce those output tensors.
 
         layer_factory: A callback that is used to decide where and which new layers add to the model.
@@ -167,7 +171,7 @@ def clone_model(
             the copy will fail. Defaults to True.
 
         verbose: Enable additional logging to stdout. Defaults to False.
-        
+
 
     Returns:
         Returns a cloned model of the original one with eventual new layers added as specfied, and if desired with old model's weights copied in the new one.
@@ -183,10 +187,12 @@ def clone_model(
 
     # Clone the inputs in order to create a separate graph
     cloned_inputs = {
-        inp: keras.Input(inp._batch_input_shape[1:], name=f"{inp.name}_new")
+        inp: input_layers[0]._inbound_nodes[0].outputs
+        # keras.Input(inp._batch_input_shape[1:], name=f"{inp.name}")
         for inp in input_layers
     }
     intermediate_tensors = dict(cloned_inputs)
+    old_tensor_map = dict(cloned_inputs)
 
     # Iterate nodes in topological order
     for i, curr_layer in enumerate(toposorted_adj_list):
@@ -202,41 +208,76 @@ def clone_model(
         ]
 
         # Additional kwargs are stored in the inbound node
+        call_args = curr_layer._inbound_nodes[0].call_args
         call_kwargs: dict = curr_layer._inbound_nodes[0].call_kwargs
-        # TODO: Tricky workaround to remove duplicated arguments for binary operators
-        if len(inbound_nodes_list) == 2:
-            if "y" in call_kwargs:
-                del call_kwargs["y"]
-            if "shape" in call_kwargs:
-                del call_kwargs["shape"]
+        if len(curr_layer._inbound_nodes) > 1:
+            raise AssertionError("Too many inbound nodes")
+        curr_output = curr_layer._inbound_nodes[0].outputs
+
+        remapped_call_args = []
+        for arg in call_args:
+            if isinstance(arg, KerasTensor) and arg.ref() in old_tensor_map:
+                remapped_call_args.append(old_tensor_map[arg.ref()])
+            else:
+                remapped_call_args.append(arg)
+        remapped_call_kwargs = {}
+        for arg_name, arg_value in call_kwargs.items():
+            if isinstance(arg_value, KerasTensor) and arg_value.ref() in old_tensor_map:
+                remapped_call_kwargs[arg_name] = old_tensor_map[arg_value.ref()]
+            else:
+                remapped_call_kwargs[arg_name] = arg_value
+
         if verbose:
             print(f"{i}. Layer: ({curr_layer})")
             print(f"\t* Name: {curr_layer.name}")
-            print(
-                f'\t* Operands ({len(layer_inputs)}): '
-            )
+            print(f"\t* Graph Operands ({len(layer_inputs)}): ")
             for inp in layer_inputs:
                 if hasattr(inp, "name"):
-                    print(f'\t\t- {inp}')
+                    print(f"\t\t- {inp.name}")
                 else:
-                    print(f'\t\t- {inp}')
-            print(f"\t* Additional kwargs: {call_kwargs}")
-            print("")
+                    print(f"\t\t- {inp}")
+            if len(call_args) > 0:
+                print(f"\t* Positional Arguments ({len(call_args)}): ")
+                for k, agvzz in enumerate(call_args):
+                    if isinstance(agvzz, KerasTensor) and agvzz.ref() in old_tensor_map:
+                        print(f"\t\t- [REMAPPED] {remapped_call_args[k]}")
+                    else:
+                        print(f"\t\t- {agvzz}")
+            else:
+                print(f"\t* No Positional Arguments")
+            if len(call_kwargs) > 0:
+                print(f"\t* Keyword Arguments ({len(call_kwargs)}): ")
+                for arg_name, arg_value in call_kwargs.items():
+                    if (
+                        isinstance(arg_value, KerasTensor)
+                        and arg_value.ref() in old_tensor_map
+                    ):
+                        print(
+                            f"\t\t- [REMAPPED] {arg_name}: {remapped_call_kwargs[arg_name]}"
+                        )
+                    else:
+                        print(f"\t\t- {arg_name}: {arg_value}")
+            else:
+                print(f"\t* No Keyword Arguments")
+            print(f"\t* Output: {curr_output}")
         # Call the layer to build the graph
         # Put the intermediate tensors coming from the inbound layers as positional
         # and additional configuration kwargs
-        layer_output = curr_layer(*layer_inputs, **call_kwargs)
+        if len(call_args) == 0 and len(call_kwargs) == 0:
+            layer_output = curr_layer(*layer_inputs)
+        else:
+            print(remapped_call_args)
+            layer_output = curr_layer(*remapped_call_args, **remapped_call_kwargs)
 
         layer_to_inject = layer_factory(curr_layer, layer_inputs, layer_output)
         intermediate_tensors[curr_layer] = layer_output
         if layer_to_inject is not None:
             if verbose:
-                print(
-                    f"\t* INJECTED LAYER: {layer_to_inject}"
-                )
-            intermediate_tensors[curr_layer] = layer_to_inject(
-                layer_output
-            )
+                print(f"\t* INJECTED LAYER: {layer_to_inject.name} ({layer_to_inject})")
+
+            intermediate_tensors[curr_layer] = layer_to_inject(layer_output)
+            if isinstance(curr_output, KerasTensor):
+                old_tensor_map[curr_output.ref()] = intermediate_tensors[curr_layer]
         else:
             intermediate_tensors[curr_layer] = layer_output
 
@@ -255,6 +296,51 @@ def clone_model(
         print(f"Inputs: {list(cloned_inputs.values())}")
         print(f"Outputs: {outputs}")
     cloned_model = keras.Model(inputs=list(cloned_inputs.values()), outputs=outputs)
+    if copy_weights:
+        cloned_model.set_weights(model.get_weights())
+    return cloned_model
+
+
+def deep_clone_function_factory(
+    inner_clone_function: Callable[[Layer, Layer], Optional[Layer]],
+    verbose=False,
+    copy_weights=True,
+) -> Callable[[Layer], Layer]:
+    def _clone_function(layer):
+        if verbose:
+            print(f"Cloning Layer Name: {layer.name} Type:{type(layer)}")
+
+        if isinstance(layer, keras.Model):
+            if verbose:
+                print(f"Layer {layer.name} is a sub-Model. Cloning it recursively")
+            cloned_submodel = keras.models.clone_model(
+                layer, clone_function=_clone_function
+            )
+            if copy_weights:
+                cloned_submodel.set_weights(layer.get_weights())
+            return cloned_submodel
+        cloned_layer = layer.__class__.from_config(layer.get_config())
+        maybe_changed_layer = inner_clone_function(cloned_layer, layer)
+        if maybe_changed_layer is layer:
+            raise ValueError('Clone function returned the old layer. Never return the old_layer from the clone function.')
+        if maybe_changed_layer is not None:
+            return maybe_changed_layer
+        else:
+            return cloned_layer
+
+    return _clone_function
+
+
+def create_manipulated_model(
+    model: keras.Model,
+    clone_function: Callable[[Layer, Layer], Optional[Layer]],
+    verbose=False,
+    copy_weights=True,
+) -> keras.Model:
+    clone_fn = deep_clone_function_factory(
+        clone_function, verbose=verbose, copy_weights=copy_weights
+    )
+    cloned_model = keras.models.clone_model(model, clone_function=clone_fn)
     if copy_weights:
         cloned_model.set_weights(model.get_weights())
     return cloned_model

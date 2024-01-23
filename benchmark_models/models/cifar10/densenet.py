@@ -98,7 +98,6 @@ class DenseNet(nn.Module):
         drop_rate=0,
         num_classes=10,
     ):
-
         super(DenseNet, self).__init__()
 
         # First convolution

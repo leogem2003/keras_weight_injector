@@ -38,7 +38,7 @@ class TFInferenceManager:
         os.makedirs(self.label_output_dir, exist_ok=True)
         os.makedirs(self.clean_output_dir, exist_ok=True)
 
-    def run_clean(self, save_outputs=True, verbose=False):
+    def run_clean(self, save_outputs=True, verbose=False, max_inferences=None):
         """
         Run a clean inference of the network
         :return: A string containing the formatted time elapsed from the beginning to the end of the fault injection
@@ -64,6 +64,8 @@ class TFInferenceManager:
             dataset_size = dataset_size + len(label)
             data = tf.convert_to_tensor(data.numpy())
 
+            if max_inferences is not None and batch_id >= max_inferences:
+                break
             # Run inference on the current batch
             scores, indices = self.__run_inference_on_batch(data=data)
 

@@ -31,7 +31,7 @@ def load_ImageNet_validation_set(
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
- 
+
     transform_validation = transforms.Compose(
         [
             transforms.Resize(256),
@@ -71,14 +71,13 @@ def load_ImageNet_validation_set(
     except FileNotFoundError:
         validation_dataset = ImageNet(
             root=imagenet_folder, split="val", transform=transform_validation
-        ) 
+        )
 
         validation_dataset_tf = ImageNet(
             root=imagenet_folder, split="val", transform=transform_validation_tf
-        ) 
+        )
 
         if image_per_class is not None:
-
             selected_validation_list = []
             image_class_counter = [0] * 1000
             for validation_image in tqdm(
@@ -92,13 +91,15 @@ def load_ImageNet_validation_set(
             selected_validation_list = []
             image_class_counter = [0] * 1000
             for validation_image in tqdm(
-                validation_dataset_tf, desc="Resizing Imagenet Dataset TF", colour="Yellow"
+                validation_dataset_tf,
+                desc="Resizing Imagenet Dataset TF",
+                colour="Yellow",
             ):
                 if image_class_counter[validation_image[1]] < image_per_class:
                     selected_validation_list.append(validation_image)
                     image_class_counter[validation_image[1]] += 1
             validation_dataset_tf = selected_validation_list
-        
+
         os.makedirs(validation_dataset_folder, exist_ok=True)
         torch.save(validation_dataset, validation_dataset_path)
         torch.save(validation_dataset_tf, validation_dataset_path_tf)
@@ -106,11 +107,15 @@ def load_ImageNet_validation_set(
     # for training
     if permute_tf:
         val_loader = torch.utils.data.DataLoader(
-            dataset=validation_dataset_tf, batch_size=batch_size, shuffle=False, 
+            dataset=validation_dataset_tf,
+            batch_size=batch_size,
+            shuffle=False,
         )
     else:
         val_loader = torch.utils.data.DataLoader(
-            dataset=validation_dataset, batch_size=batch_size, shuffle=False, 
+            dataset=validation_dataset,
+            batch_size=batch_size,
+            shuffle=False,
         )
     print("Dataset loaded")
 
