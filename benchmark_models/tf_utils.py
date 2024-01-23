@@ -54,7 +54,7 @@ def deep_clone_function_factory(
 
 def create_manipulated_model(
     model: keras.Model,
-    clone_function: Callable[[Layer, Layer], Optional[Layer]] = lambda cloned_layer, old_layer: None
+    clone_function: Callable[[Layer, Layer], Optional[Layer]] = lambda cloned_layer, old_layer: None,
     verbose=False,
     copy_weights=True,
 ) -> keras.Model:
