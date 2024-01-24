@@ -36,7 +36,6 @@ def googlenet(pretrained=False, progress=True, device="cpu", **kwargs):
 
 
 class GoogLeNet(nn.Module):
-
     # CIFAR10: aux_logits True->False
     def __init__(self, num_classes=10, aux_logits=False, transform_input=False):
         super(GoogLeNet, self).__init__()
