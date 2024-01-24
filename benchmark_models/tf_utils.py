@@ -27,6 +27,48 @@ def deep_clone_function_factory(
     verbose=False,
     copy_weights=True,
 ) -> Callable[[Layer], Layer]:
+    """
+    Builds a Clone Function that can be used as the ```clone_function``` argument inside the ```keras.models.clone_model()```.
+    The function built from this function is applied to all layer in the model, including also layers inside submodels, without limits
+    on the depth of the model. The function allows to make changes on the new graph while cloning the old graph.
+
+    ## Args
+        - ```inner_clone_function```: A clone function that is slightly different from the one of ```keras.models.clone_model()```. It takes
+            in input two ```keras.Layer``` objects, ```cloned_layer``` and ```old_layer```. The first one, ```cloned_layer``` is a layer cloned from the old model 
+            and depending on the returned object of this function may or may not be inserted in the cloned graph as it is.
+            ```old_layer``` is the layer object from the old graph, and can be used to access properties 
+            of the graph to be cloned. The function returns a ```keras.Layer``` object, or ```None```. If it returns ```None``` or exactly ```cloned_layer``` then 
+            the layer being cloned is not changed. If it returns instead another layer object then the layer in the cloned model is changed withe layer returned.
+            NOTE: Never return ```old_layer``` in this function.
+        - ```verbose```: If ```True```, the function will log information about the current layer being cloned. Defaults to ```False```.
+        - ```copy_weights```: If ```True``` the function copies automatically the weights from all the old layers to the new ones.
+
+    ## Returns:
+        A function that can be used as the ```clone_function``` argument in ```keras.models.clone_model()```, making sure that all layers all the models are
+        inspected, including ones in the submodels, and depending on ```innner_clone_function``` changed to a new layer.
+
+    ## Usage Example:
+    ```
+    import keras
+    from tf_utils import deep_clone_function_factory
+
+    class FaultInjector(keras.Layer):
+        pass
+
+    # Example of a function for adding a fault injection layer after a layer named "conv_2d_1" 
+    def inner_clone_function(cloned_layer, old_layer):
+        if old_layer.name == "conv_2d_1":
+            return keras.Sequentual([cloned_layer, FaultInjector()])
+        else:
+            return None #or cloned_layer
+
+    model_to_clone = ...  # A keras Model
+    clone_fn = deep_clone_function_factory(inner_clone_function, verbose=True)
+    
+    cloned_model = keras.models.clone_model(model_to_clone, clone_fn)
+    ```
+
+    """
     def _clone_function(layer):
         if verbose:
             print(f"Cloning Layer Name: {layer.name} Type:{type(layer)}")
@@ -74,7 +116,7 @@ def create_manipulated_model(
             to be cloned.
             If the function returns ```None``` or exactly ```cloned_layer``` then ```new_layer``` in the source model will be inserted as it is in the new cloned model
             If the function returns another layer, then that layer replaces the ```new_layer``` in the cloned model with a custom layer.
-            In no circumstanes ```old_layer``` should be returned from this function, otherwise a ```ValueError``` will be thrown.
+            NOTE: Never return ```old_layer``` from this function, otherwise a ```ValueError``` will be thrown.
 
         - ```verbose```: Print to stdout information about the layers when they are cloned. Defaults to ```False```.
 
@@ -84,7 +126,7 @@ def create_manipulated_model(
     ## Usage Example:
     ```
     import keras
-    from tf_utils import clone_function
+    from tf_utils import create_manipulated_model
 
     class FaultInjector(keras.Layer):
         pass

@@ -22,22 +22,29 @@ By default, results are saved in ```.pt``` files in the ```output/network_name/p
 
 ## Available Models (so far)
 
-The TensorFlow versions of the models, when available, are converted using the [nobuco](https://github.com/AlexanderLutsenko/nobuco) PyTorch to Tensorflow converter, and have the same accuracy of the PyTorch models.
+The Keras versions of the models, when available, are obtained using the [nobuco](https://github.com/AlexanderLutsenko/nobuco) PyTorch to Keras converter.
+The Keras versions of all models share the same structure and weigths, and have similar accuracies to their PyTorch counterpart.
 
-### ResNet Models
+### CIFAR-10 Models
 
-ResNet models are trained on CIFAR-10. 
+All the models are validated using the CIFAR10 validation tests, that cointains 10000 images.
 
-
-| Model        | Description                   | PyTorch                 | Tensorflow         | Accuracy |
-| ------------ | ----------------------------- | ----------------------- |--------------------|----------|
-| ResNet20     | 20-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 91.48 %  |
-| ResNet32     | 32-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 92.34 %  |
-| ResNet44     | 44-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 92.76 %  |
-| ResNet56     | 56-layer Residual Network     | :white_check_mark:      | :white_check_mark: | 93.27 %  | 
-| ResNet110    | 110-layer Residual Network    | :white_check_mark:      | :white_check_mark: | 93.5  %  |
-| ResNet1202   | 1202-layer Residual Network   | :white_check_mark:      | :white_check_mark: | 93.5  %  |
-
+| Model        | Description                   | PyTorch  Accuracy       | Keras Accuracy     |  Sources  |
+| ------------ | ----------------------------- | ----------------------- |--------------------|-----------|
+| ResNet20     | 20-layer Residual Network     | 91.5 %                  | 91.5 %             |           |
+| ResNet32     | 32-layer Residual Network     | 92.3 %                  | 92.3 %             |           |
+| ResNet44     | 44-layer Residual Network     | 92.8 %                  | 92.8 %             |           |
+| ResNet56     | 56-layer Residual Network     | 93.3 %                  | 93.3 %             |           |
+| ResNet110    | 110-layer Residual Network    | 93.5 %                  | 93.5 %             |           |
+| MobileNetV2  |                               | 91.7 %                  | 91.7 %             |           |
+| Vgg19_bn     |                               | 93.2 %                  | 93.2 %             |           | 
+| Vgg16_bn     |                               | 93.5 %                  | 93.5 %             |           | 
+| Vgg13_bn     |                               | 93.8 %                  | 93.8 %             |           | 
+| Vgg11_bn     |                               | 91.3 %                  | 91.3 %             |           |
+| DenseNet121  |                               | 93.2 %                  | 91.3 %             |           | 
+| DenseNet161  |                               | 93.1 %                  | 93.3 %             |           |          
+| DenseNet169  |                               | 93.4 %                  | 92.9 %             |           | 
+| GoogLeNet    |                               | 92.2 %                  | 91.4 %             |           | 
 
 ## Prerequisites 
 
