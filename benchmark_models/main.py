@@ -3,10 +3,10 @@ import torch
 from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets
 
 from utils import load_network, get_device, parse_args, get_loader
-from classes_core.error_simulator_keras import (
-    create_injection_sites_layer_simulator,
-    ErrorSimulator,
-)
+# from classes_core.error_simulator_keras import (
+#     create_injection_sites_layer_simulator,
+#     ErrorSimulator,
+# )
 
 
 def main(args):
@@ -19,14 +19,16 @@ def main(args):
     print(f"Using device {device}")
 
     # Load the network
-    network = load_network(network_name=args.network_name, device=device)
+    network = load_network(network_name=args.network_name, device=device, dataset_name=args.dataset)
 
     print(f"Using network: {args.network_name}")
 
     _, loader = get_loader(
         network_name=args.network_name,
+        dataset_name=args.dataset,
         batch_size=args.batch_size,
         permute_tf=args.tensorflow,
+        
     )
 
     # # Load the dataset

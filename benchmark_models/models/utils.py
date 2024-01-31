@@ -5,7 +5,8 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import TensorDataset
 from torchvision import transforms
-from torchvision.datasets import CIFAR10, ImageNet
+from torchvision.datasets import CIFAR10, ImageNet, CIFAR100, GTSRB
+from torchvision.transforms.v2 import ToTensor,Resize,Compose,ColorJitter,RandomRotation,AugMix,GaussianBlur,RandomEqualize,RandomHorizontalFlip,RandomVerticalFlip
 
 
 class PermuteToTensorFlow:
@@ -151,10 +152,10 @@ def load_CIFAR10_datasets(
     )
 
     train_dataset = CIFAR10(
-        "datasets/files/", train=True, transform=transform_train, download=True
+        "./datasets", train=True, transform=transform_train, download=True
     )
     test_dataset = CIFAR10(
-        "datasets/files/", train=False, transform=transform_test, download=True
+        "./datasets", train=False, transform=transform_test, download=True
     )
 
     # If only a number of images is required per class, modify the test set
@@ -192,16 +193,98 @@ def load_CIFAR10_datasets(
         dataset=test_dataset, batch_size=test_batch_size, shuffle=False
     )
 
-    print("Dataset loaded")
+    print("CIFAR10 Dataset loaded")
 
     return train_loader, val_loader, test_loader
 
+def Load_CIFAR100_datasets(train_batch_size=32, train_split=0.8, test_batch_size=1, test_image_per_class=None):
+    
+    transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5070751592371323, 0.48654887331495095, 0.4409178433670343),
+                         (0.2673342858792401, 0.2564384629170883, 0.27615047132568404))
+    ])
+
+    train_dataset = CIFAR100('./datasets', train=True, transform=transform, download=True)
+    test_dataset = CIFAR100('./datasets', train=False, transform=transform, download=True)
+
+    train_split = 0.8
+    train_split_length = int(len(train_dataset) * train_split)
+    val_split_length = len(train_dataset) - train_split_length
+    train_subset, val_subset = torch.utils.data.random_split(train_dataset, lengths=[train_split_length, val_split_length], generator=torch.Generator())
+
+    train_loader = torch.utils.data.DataLoader(dataset=train_subset, batch_size=train_batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(dataset=val_subset, batch_size=train_batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=test_batch_size, shuffle=True)
+
+    print('CIFAR100 Dataset loaded')
+    return train_loader, val_loader, test_loader
+
+def Load_GTSRB_datasets(train_batch_size=32, train_split=0.8, test_batch_size=1, test_image_per_class=None):
+    
+    train_transforms = Compose([
+    ColorJitter(brightness=1.0, contrast=0.5, saturation=1, hue=0.1),
+    RandomEqualize(0.4),
+    AugMix(),
+    RandomHorizontalFlip(0.3),
+    RandomVerticalFlip(0.3),
+    GaussianBlur((3,3)),
+    RandomRotation(30),
+    
+    Resize([50,50]),
+    ToTensor(),
+    transforms.Normalize((0.3403, 0.3121, 0.3214),
+                            (0.2724, 0.2608, 0.2669))
+    
+    ])
+
+    test_transforms = Compose([
+        Resize([50, 50]),
+        ToTensor(),
+        transforms.Normalize((0.3403, 0.3121, 0.3214), (0.2724, 0.2608, 0.2669)),
+    ])
+
+    train_dataset = GTSRB(root='./datasets',
+                            split='train',
+                            download=True,
+                            transform=train_transforms)
+    test_dataset = GTSRB(root='./datasets',
+                            split='test',
+                            download=True,
+                            transform=test_transforms)
+
+
+
+    # Split the training set into training and validation
+    train_split_length = int(len(train_dataset) * 0.8)
+    val_split_length = len(train_dataset) - train_split_length
+    train_subset, val_subset = torch.utils.data.random_split(train_dataset,
+                                                                lengths=[train_split_length, val_split_length],
+                                                                generator=torch.Generator().manual_seed(1234))
+    # DataLoader is used to load the dataset
+    # for training
+    train_loader = torch.utils.data.DataLoader(dataset=train_subset,
+                                                batch_size=train_batch_size,
+                                                shuffle=True)
+    val_loader = torch.utils.data.DataLoader(dataset=val_subset,
+                                                batch_size=train_batch_size,
+                                                shuffle=True)  
+
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                                batch_size=test_batch_size,
+                                                shuffle=False)
+
+    print('GTSRB Dataset loaded')
+        
+    return train_loader, val_loader, test_loader
 
 def load_from_dict(network, device, path, function=None):
     if ".th" in path:
         state_dict = torch.load(path, map_location=device)["state_dict"]
+        print("Loaded from .th file")
     else:
         state_dict = torch.load(path, map_location=device)
+        print("state_dict loaded")
 
     if function is None:
         clean_state_dict = {
@@ -216,3 +299,4 @@ def load_from_dict(network, device, path, function=None):
         }
 
     network.load_state_dict(clean_state_dict, strict=False)
+    print("state_dict loaded into network")
