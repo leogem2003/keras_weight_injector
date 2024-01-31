@@ -21,7 +21,7 @@ from models.GTSRB import vgg_GTSRB
 from models.GTSRB import resnet_GTSRB
 from models.GTSRB import densenet_GTSRB
 
-import models.imagenet.VGG as vgg_imagenet
+import models.imagenet.Vgg_imagenet as vgg_imagenet
 
 
 
