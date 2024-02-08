@@ -24,7 +24,6 @@ def main(args):
         permute_tf=args.tensorflow,
     )
 
-
     _, _, loader = load_CIFAR10_datasets(
         test_batch_size=args.batch_size, permute_tf=args.tensorflow
     )
@@ -32,7 +31,9 @@ def main(args):
 
     if args.tensorflow:
         # Import inference manager only here to avoid importing tensorflow for pytorch users
-        from TFInferenceManager import TFInferenceManager
+        from benchmark_models.inference_tools.tf_inference_manager import (
+            TFInferenceManager,
+        )
         from tf_utils import load_converted_tf_network, create_manipulated_model
         import keras
 
@@ -43,7 +44,7 @@ def main(args):
             network=tf_network, network_name=args.network_name, loader=loader
         )
         tf_network.summary(expand_nested=True)
-        inference_executor.run_clean(max_inferences=2)
+        inference_executor.run_inference(max_inferences=2)
 
         def classes_factory(layer, old_layer):
             if layer.name == "re_lu_5":
@@ -82,7 +83,9 @@ def main(args):
     else:
         # Import inference manager only here to avoid importing pytorch for tensorflow users
 
-        from InferenceManager import InferenceManager
+        from benchmark_models.inference_tools.pytorch_inference_manager import (
+            PTInferenceManager,
+        )
 
         # Load the network
         network = load_network(network_name=args.network_name, device=device)
@@ -91,7 +94,7 @@ def main(args):
 
         network.eval()
         # Execute the fault injection campaign with the smart network
-        inference_executor = InferenceManager(
+        inference_executor = PTInferenceManager(
             network=network,
             device=device,
             network_name=args.network_name,
@@ -99,7 +102,7 @@ def main(args):
         )
 
     # This function runs clean inferences on the golden dataset
-    inference_executor.run_clean()
+    inference_executor.run_inference()
 
 
 if __name__ == "__main__":

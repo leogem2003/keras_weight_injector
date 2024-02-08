@@ -1,11 +1,13 @@
 import os
-from tf_utils import create_manipulated_model
+from benchmark_models.tf_utils import create_manipulated_model
 
-from models.utils import load_ImageNet_validation_set
-
-from models.utils import load_CIFAR10_datasets
-
-from utils import SUPPORTED_MODELS_LIST, get_device, get_loader, load_network
+from benchmark_models.utils import (
+    SUPPORTED_MODELS,
+    SUPPORTED_DATASETS,
+    get_device,
+    get_loader,
+    load_network,
+)
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -17,8 +19,10 @@ import argparse
 import nobuco
 from nobuco import ChannelOrder, converter, ChannelOrderingStrategy
 
-from InferenceManager import InferenceManager
-from TFInferenceManager import TFInferenceManager
+from benchmark_models.inference_tools.pytorch_inference_manager import (
+    PTInferenceManager,
+)
+from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
 
 # NOBUCO converters for missing operators
 
@@ -142,7 +146,15 @@ def parse_args():
         type=str,
         required=True,
         help="Target network",
-        choices=SUPPORTED_MODELS_LIST,
+        choices=SUPPORTED_MODELS,
+    )
+    parser.add_argument(
+        "--dataset",
+        "-d",
+        type=str,
+        required=True,
+        help="Dataset to use",
+        choices=SUPPORTED_DATASETS,
     )
     parser.add_argument(
         "--overwrite",
@@ -196,50 +208,12 @@ def fake_layer_factory(layer):
     return cloned_layer
 
 
-def deep_clone_function_factory(inner_clone_function, verbose=False, copy_weights=True):
-    def _clone_function(layer):
-        if verbose:
-            print(f"Cloning Layer Name: {layer.name} Type:{type(layer)}")
-
-        if isinstance(layer, keras.Model):
-            if verbose:
-                print(f"Layer {layer.name} is a sub-Model. Cloning it recursively")
-            cloned_submodel = keras.models.clone_model(
-                layer, clone_function=_clone_function
-            )
-            if copy_weights:
-                cloned_submodel.set_weights(layer.get_weights())
-            return cloned_submodel
-        maybe_cloned_layer = inner_clone_function(layer)
-        if maybe_cloned_layer is not None:
-            return maybe_cloned_layer
-
-        cloned_layer = layer.__class__.from_config(layer.get_config())
-        return cloned_layer
-
-    return _clone_function
-
-
-def prepare_loader(network_name, batch_size, permute_tf=False):
-    # Load the dataset
-    if "ResNet" in network_name:
-        _, _, loader = load_CIFAR10_datasets(
-            test_batch_size=batch_size, permute_tf=permute_tf
-        )
-        print(f"Using dataset: CIFAR10")
-    else:
-        loader = load_ImageNet_validation_set(
-            batch_size=batch_size, image_per_class=1, permute_tf=permute_tf
-        )
-    return loader
-
-
 def main(args):
     print("Running nobuco converter")
     print(f"Converting network {args.network_name} to PyTorch")
 
     output_path = args.output_path or os.path.join(
-        "models", "converted-tf", f"{args.network_name}.keras"
+        "models", "converted-tf", args.dataset, f"{args.network_name}.keras"
     )
 
     if args.output_path is None:
@@ -256,11 +230,13 @@ def main(args):
     print(f"Using device {device}")
 
     # Load the network
-    network = load_network(network_name=args.network_name, device=device)
+    network = load_network(
+        network_name=args.network_name, dataset_name=args.dataset, device=device
+    )
     network.eval()
 
     _, conversion_loader = get_loader(
-        network_name=args.network_name, batch_size=args.batch_size, permute_tf=False
+        dataset_name=args.dataset, batch_size=args.batch_size, permute_tf=False
     )
 
     if not skip_conversion:
@@ -292,24 +268,24 @@ def main(args):
     reloaded_keras_model.summary(expand_nested=True)
 
     _, validation_loader_tf = get_loader(
-        network_name=args.network_name, batch_size=args.batch_size, permute_tf=True
+        dataset_name=args.dataset, batch_size=args.batch_size, permute_tf=True
     )
 
     _, validation_loader_pt = get_loader(
-        network_name=args.network_name, batch_size=args.batch_size, permute_tf=False
+        dataset_name=args.dataset, batch_size=args.batch_size, permute_tf=False
     )
 
     print(f"STEP 3. [COMPLETED] Reloading Keras model from {output_path}.")
     if not args.skip_validation:
         if not args.skip_pt_validation:
             print("STEP 4. [STARTING] Validating PyTorch Model.")
-            inference_executor = InferenceManager(
+            inference_executor = PTInferenceManager(
                 network=network,
                 network_name=args.network_name,
                 device=device,
                 loader=validation_loader_pt,
             )
-            inference_executor.run_clean(save_outputs=False)
+            inference_executor.run_inference(save_outputs=False)
             print("STEP 4. [COMPLETED] Validating PyTorch Model.")
         else:
             print("STEP 4. [SKIPPED] Validating PyTorch Model.")
@@ -321,7 +297,7 @@ def main(args):
             network_name=args.network_name,
             loader=validation_loader_tf,
         )
-        tf_inference_executor.run_clean(save_outputs=False)
+        tf_inference_executor.run_inference(save_outputs=False)
         print("STEP 5. [COMPLETED] Validating converted Keras Model.")
     else:
         print("STEP 4. [SKIPPED] Validating PyTorch Model.")
@@ -356,7 +332,7 @@ def main(args):
             network_name=args.network_name,
             loader=validation_loader_tf,
         )
-        tf_cloned_inference_executor.run_clean()
+        tf_cloned_inference_executor.run_inference()
         print("STEP 6. [COMPLETED] Keras Model cloning and manipulation test.")
     else:
         print("STEP 6. [SKIPPED] Keras Model cloning and manipulation test.")

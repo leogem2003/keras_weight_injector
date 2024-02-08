@@ -1,12 +1,6 @@
 import torch
 
-from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets
-
-from utils import load_network, get_device, parse_args, get_loader
-# from classes_core.error_simulator_keras import (
-#     create_injection_sites_layer_simulator,
-#     ErrorSimulator,
-# )
+from benchmark_models.utils import load_network, get_device, parse_args, get_loader
 
 
 def main(args):
@@ -19,34 +13,27 @@ def main(args):
     print(f"Using device {device}")
 
     # Load the network
-    network = load_network(network_name=args.network_name, device=device, dataset_name=args.dataset)
+    network = load_network(
+        network_name=args.network_name, device=device, dataset_name=args.dataset
+    )
 
     print(f"Using network: {args.network_name}")
 
     _, loader = get_loader(
-        network_name=args.network_name,
         dataset_name=args.dataset,
         batch_size=args.batch_size,
         permute_tf=args.tensorflow,
-        
     )
-
-    # # Load the dataset
-    # if 'ResNet' in args.network_name:
-    #     _, _, loader = load_CIFAR10_datasets(test_batch_size=args.batch_size)
-    #     print(f"Using dataset: CIFAR10")
-
-    # else:
-    #     loader = load_ImageNet_validation_set(batch_size=args.batch_size,
-    #                                           image_per_class=1)
 
     if args.tensorflow:
         # Import inference manager only here to avoid importing tensorflow for pytorch users
-        from TFInferenceManager import TFInferenceManager
+        from benchmark_models.inference_tools.tf_inference_manager import (
+            TFInferenceManager,
+        )
         from tf_utils import load_converted_tf_network, clone_model
         import keras
 
-        tf_network = load_converted_tf_network(args.network_name)
+        tf_network = load_converted_tf_network(args.network_name, args.dataset)
 
         # Execute the fault injection campaign with the smart network
         inference_executor = TFInferenceManager(
@@ -55,10 +42,12 @@ def main(args):
 
     else:
         # Import inference manager only here to avoid importing pytorch for tensorflow users
-        from InferenceManager import InferenceManager
+        from benchmark_models.inference_tools.pytorch_inference_manager import (
+            PTInferenceManager,
+        )
 
         # Execute the fault injection campaign with the smart network
-        inference_executor = InferenceManager(
+        inference_executor = PTInferenceManager(
             network=network,
             device=device,
             network_name=args.network_name,
@@ -66,7 +55,7 @@ def main(args):
         )
 
     # This function runs clean inferences on the golden dataset
-    inference_executor.run_clean()
+    inference_executor.run_inference()
 
 
 if __name__ == "__main__":
