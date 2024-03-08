@@ -10,3 +10,8 @@ benchmark_models/models/pretrained_models/CIFAR100/*.pth
 benchmark_models/models/pretrained_models/imagenet/*.th
 benchmark_models/models/pretrained_models/imagenet/*.pt
 benchmark_models/models/pretrained_models/GTSRB/*.pt
+scripts
+reports
+tmp
+classes_models
+benchmark_models/faultlists/test_faultists

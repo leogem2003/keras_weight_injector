@@ -30,8 +30,7 @@ def main(args):
         from benchmark_models.inference_tools.tf_inference_manager import (
             TFInferenceManager,
         )
-        from tf_utils import load_converted_tf_network, clone_model
-        import keras
+        from benchmark_models.tf_utils import load_converted_tf_network
 
         tf_network = load_converted_tf_network(args.network_name, args.dataset)
 

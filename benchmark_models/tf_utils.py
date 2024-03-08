@@ -1,10 +1,14 @@
 import os
 import tensorflow as tf
 import keras
+import importlib.resources
 from keras.src.engine import functional
 from keras.src.layers import Layer
 from typing import Callable, Optional
 
+
+
+MODULE_PATH = importlib.resources.files(__package__)
 
 def load_converted_tf_network(
     network_name: str, dataset_name: str, models_path: str = "models/converted-tf"
@@ -33,7 +37,7 @@ def load_converted_tf_network(
     """
 
     # Load the entire model with weights
-    network_path = os.path.join(models_path, dataset_name, f"{network_name}.keras")
+    network_path = os.path.join(MODULE_PATH, models_path, dataset_name, f"{network_name}.keras")
 
     return keras.models.load_model(network_path)
 

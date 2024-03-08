@@ -23,7 +23,7 @@ class PTInferenceManager(InferenceManager):
         device: torch.device,
         loader: DataLoader,
     ):
-        super(PTInferenceManager, self).__init__(network, network_name, device, loader)
+        super(PTInferenceManager, self).__init__(network, network_name, loader)
         self.device = device
 
     def run_inference(self, faulty=False, verbose=False, save_outputs=True):
@@ -73,15 +73,15 @@ class PTInferenceManager(InferenceManager):
                         batch_labels, f"{self.label_output_dir}/batch_{batch_id}.pt"
                     )
 
-            if not faulty:
-                # Append the results to a list
-                self.clean_output_scores += batch_scores
-                self.clean_output_indices += batch_indices
-                self.clean_labels += batch_labels
-            else:
-                # Append the results to a list
-                self.faulty_output_scores += batch_scores
-                self.faulty_output_indices += batch_indices
+                if not faulty:
+                    # Append the results to a list
+                    self.clean_output_scores += batch_scores
+                    self.clean_output_indices += batch_indices
+                    self.clean_labels += batch_labels
+                else:
+                    # Append the results to a list
+                    self.faulty_output_scores += batch_scores
+                    self.faulty_output_indices += batch_indices
 
         # COMPUTE THE ACCURACY OF THE NEURAL NETWORK
         # Element-wise comparison

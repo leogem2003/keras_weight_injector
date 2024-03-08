@@ -1,15 +1,14 @@
 from dataclasses import dataclass
 import csv
-import sys
 from typing import Tuple
-import tensorflow as tf
-from tensorflow import keras
+from benchmark_models.inference_tools.inference_manager import InferenceManager
 from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
+from benchmark_models.inference_tools.pytorch_inference_manager import PTInferenceManager
 from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
 from benchmark_models.injector.faultlist_loader import load_fault_list
-from benchmark_models.injector.utils import float32_to_int, int_to_float32
-from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader
-from benchmark_models.tf_utils import load_converted_tf_network
+from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader, load_network
+import torch
+import torch.nn as nn
 import argparse
 from contextlib import contextmanager
 from operator import attrgetter
@@ -20,82 +19,61 @@ import numpy as np
 import csv
 import os
 from datetime import datetime
+import copy
+
+from flip import float32_to_int, int_to_float32
 
 DEFAULT_REPORT_FOLDER = "reports"
-INJECTED_LAYERS_TYPES_KERAS = (keras.layers.Conv2D, keras.layers.Dense)
-
-
 
 @contextmanager
 def weight_bit_flip_applied(
-    keras_model: keras.Model,
-    layer: keras.layers.Layer,
+    pt_model: nn.Module,
+    layer: nn.Module,
     weight_coord: Tuple[int],
     bit: int,
 ):
-    weights = layer.get_weights()
-    selected_weight = weights[0][weight_coord]
-    selected_weight_int = float32_to_int(selected_weight)
-    selected_weight_int ^= 1 << bit
-    new_weight = int_to_float32(selected_weight_int)
-    weights[0][weight_coord] = new_weight
-    layer.set_weights(weights)
-    try:
-        yield keras_model
-    finally:
-        weights[0][weight_coord] = selected_weight
-        layer.set_weights(weights)
+    with torch.no_grad():
+        weights = layer.weight
+        selected_weight = float(weights[tuple(weight_coord)])
+        selected_weight_int = float32_to_int(selected_weight)
+        selected_weight_int ^= 1 << bit
+        new_weight = int_to_float32(selected_weight_int)
+        weights[tuple(weight_coord)] = new_weight
+        try:
+            yield pt_model
+        finally:
+            weights[tuple(weight_coord)] = selected_weight
+
 
 def main(args):
     _, loader = get_loader(
         dataset_name=args.dataset,
         batch_size=args.batch_size,
-        permute_tf=True,
+        permute_tf=False,
         dataset_path="../datasets",
     )
 
-    tf_network = load_converted_tf_network(
-        args.network_name,
-        args.dataset,
-        models_path="models/converted-tf",
-    )
-    faulty_network = keras.models.clone_model(tf_network)
-    faulty_network.set_weights(tf_network.get_weights())
+    device = torch.device(args.device)
 
-    tf_network.summary(expand_nested=True)
+    network = load_network(
+        args.network_name,
+        device,
+        args.dataset,
+    )
+    network.eval()
+    network.to(device)
 
     target_layers_list, injections = load_fault_list(
-        args.fault_list, convert_faults_pt_to_tf=True
+        args.fault_list, convert_faults_pt_to_tf=False
     )
 
-    # Filter layers
-    keras_conv_layers = [
-        layer
-        for layer in faulty_network._flatten_layers(include_self=False, recursive=True)
-        if isinstance(layer, INJECTED_LAYERS_TYPES_KERAS)
-    ]
-
-    keras_conv_layers_names = list(map(attrgetter("name"), keras_conv_layers))
-    weights_shapes = [[w.shape for w in l.get_weights()] for l in keras_conv_layers]
-
-    print(
-        tabulate(
-            zip(target_layers_list, keras_conv_layers_names, weights_shapes),
-            headers=["PyTorch", "Keras", "Keras Weight Shape"],
-        )
-    )
-
-    print(f"Number of target layers: {len(target_layers_list)}")
-    print(f"Number of conv layers in model: {len(keras_conv_layers)}")
-
-    if len(target_layers_list) != len(keras_conv_layers):
-        raise ValueError("Mismatching layer mapping")
+    layer_shapes = [layer.weight.shape for layer in target_layers_list]
+    target_layers_list = zip(target_layers_list, layer_shapes)
 
     top_1_accuracy = TopKAccuracy(k=1)
     top_5_accuracy = TopKAccuracy(k=5)
 
-    target_layer_mapping = dict(zip(target_layers_list, keras_conv_layers))
-    inf_manager = TFInferenceManager(tf_network, "ResNet20", loader)
+    inf_manager = PTInferenceManager(network, args.network_name, device, loader)
     inf_manager.run_clean()
     top_1_gold, top_1_acc = inf_manager.evaluate_metric(
         top_1_accuracy, use_faulty_outputs=False
@@ -164,11 +142,11 @@ def main(args):
             tqdm(injections[args.resume_from :], leave=False)
         ):
             inj_id, target_layer_name, weight_coords, bit_pos = injection
-            target_layer = target_layer_mapping[target_layer_name]
+            target_layer = network.get_submodule(target_layer_name)
             with weight_bit_flip_applied(
-                faulty_network, target_layer, weight_coords, bit_pos
+                network, target_layer, weight_coords, bit_pos
             ):
-                inf_manager.run_faulty(faulty_network)
+                inf_manager.run_faulty(network)
                 inf_count = inf_manager.faulty_inference_counts
 
                 top_1_count, _ = inf_manager.evaluate_metric(
@@ -180,6 +158,7 @@ def main(args):
 
                 clean_out_scores = np.array(inf_manager.clean_output_scores)
                 faulty_out_scores = np.array(inf_manager.faulty_output_scores)
+
                 if args.save_scores:
                     np.save(os.path.join(report_folder_base, f'inj_{inj_id}.npy'), faulty_out_scores)
 
@@ -215,7 +194,6 @@ def main(args):
                     f.flush()
                 inf_manager.reset_faulty_run()
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Perform fault injections to weigths of a Tensorflow model",
@@ -244,7 +222,7 @@ def parse_args():
         "--fault-list",
         "-f",
         type=str,
-        required=False,
+        required=True,
         help="Path to Fault list",
     )
     parser.add_argument(
@@ -268,6 +246,14 @@ def parse_args():
         action='store_true',
         help="Save Injection Data",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default='cuda',
+        choices=['cpu', 'cuda'],
+        help="Device used for inference execution",
+    )
+    
     
     parsed_args = parser.parse_args()
 
