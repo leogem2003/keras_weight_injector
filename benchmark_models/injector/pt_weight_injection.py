@@ -32,6 +32,40 @@ def weight_bit_flip_applied(
     weight_coord: Tuple[int],
     bit: int,
 ):
+    """
+    Applies a bit flip to the weight when inside the context. The modifications are made in place.
+    When exiting the context the weight is restored to the original version (even after an exception).
+
+    Usage Example
+    ----
+    ```
+    model = ... # Load PyTorch model
+    layer = 'conv1'
+    weight_coord = (1,2,0,1)
+    bit = 27
+
+
+    with weight_bit_flip_applied(model, layer, weight_coord, bit):
+        # Execute inside here inference with fault active
+        ...
+    # Here outside of the context, the fault is not active and the models works as before the context
+    ```
+
+    Args
+    ---
+    * ``pt_model: nn.Module``
+        The PyTorch model to inject
+    * ``layer : nn.Module``
+        The Module object  that contains the target layer. It must have a .weight attribute.
+    * ``weight_coord: Tuple[int]``
+        The coordinate of the weight that needs to bit flipped. The weight_coord must be a valid index in ``layer.weight``
+    * ``bit: int``
+        The bit position to flip.
+
+    Returns
+    ---
+    ``model``. (Not needed since the modifications are made in place to the model)
+    """
     with torch.no_grad():
         weights = layer.weight
         selected_weight = float(weights[tuple(weight_coord)])
