@@ -41,10 +41,9 @@ All the models are validated using the CIFAR10 validation set, that cointains 10
 | Vgg16_bn     | 93.5 %                  | 93.5 %               |           |           |
 | Vgg13_bn     | 93.8 %                  | 93.8 %               |           |           | 
 | Vgg11_bn     | 91.3 %                  | 91.3 %               |           |           |
-| DenseNet121  | 93.2 %                  | 91.3 %               |           |           | 
-| DenseNet161  | 93.1 %                  | 93.3 %               |           |           |          
-| DenseNet169  | 93.4 %                  | 92.9 %               |           |           | 
-| GoogLeNet    | 92.2 %                  | 91.4 %               |           |           | 
+| DenseNet121  | 93.2 %                  | 93.1 %               |           |           | 
+| DenseNet161  | 93.1 %                  | 93.1 %               |           |           |          
+| GoogLeNet    | 92.2 %                  | 92.2 %               |           |           | 
 
 ### CIFAR-100 Models
 Here is a list of models trained for CIFAR100 dataset, that has images belonging to 100 classes.
@@ -54,7 +53,7 @@ All the models are validated using the CIFAR100 validation set, that cointains 1
 | ------------ | ----------------------- |--------------------- |---------- | ------------------------- |
 | ResNet18     | 76.2 %                  | 76.2 %               |           |                           |
 | DenseNet121  | 78.7 %                  | 78.7 %               |           |                           |
-| GoogLeNet    | 76.3 %                  | 72.9 %   :warning:   |           | (Imprecise MaxPooling conversion)                               |
+| GoogLeNet    | 76.3 %                  | 76.3 %               |           |                           |
 
 ### GTSRB Models
 Here is a list of models trained for GTSRB dataset, containing 43 classes of German Traffic signals.
