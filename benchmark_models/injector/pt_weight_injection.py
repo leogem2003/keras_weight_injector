@@ -11,17 +11,14 @@ import torch
 import torch.nn as nn
 import argparse
 from contextlib import contextmanager
-from operator import attrgetter
 from tabulate import tabulate
-import struct
 from tqdm import tqdm
 import numpy as np
 import csv
 import os
 from datetime import datetime
-import copy
 
-from flip import float32_to_int, int_to_float32
+from utils import float32_to_int, int_to_float32
 
 DEFAULT_REPORT_FOLDER = "reports"
 
@@ -64,7 +61,7 @@ def weight_bit_flip_applied(
 
     Returns
     ---
-    ``model``. (Not needed since the modifications are made in place to the model)
+    ``model``. (Not used since the modifications are made in place to the model)
     """
     with torch.no_grad():
         weights = layer.weight

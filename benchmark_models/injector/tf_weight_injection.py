@@ -20,6 +20,7 @@ import numpy as np
 import csv
 import os
 from datetime import datetime
+from natsort import natsorted
 
 DEFAULT_REPORT_FOLDER = "reports"
 INJECTED_LAYERS_TYPES_KERAS = (keras.layers.Conv2D, keras.layers.Dense)
@@ -127,8 +128,12 @@ def main(args):
 
     top_1_accuracy = TopKAccuracy(k=1)
     top_5_accuracy = TopKAccuracy(k=5)
-
+    if args.sort_tf_layers:
+        print('Reordering layers')
+        keras_conv_layers = natsorted(keras_conv_layers, key=lambda l: l.name)
     target_layer_mapping = dict(zip(target_layers_list, keras_conv_layers))
+
+
     inf_manager = TFInferenceManager(tf_network, "ResNet20", loader)
     inf_manager.run_clean()
     top_1_gold, top_1_acc = inf_manager.evaluate_metric(
@@ -302,6 +307,12 @@ def parse_args():
         action='store_true',
         help="Save Injection Data",
     )
+    parser.add_argument(
+        "--sort-tf-layers",
+        action='store_true',
+        help="(Nat)Sort TF layers by name to make them match with their layer",
+    )
+    
     
     parsed_args = parser.parse_args()
 

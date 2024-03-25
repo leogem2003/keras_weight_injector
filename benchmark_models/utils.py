@@ -219,7 +219,7 @@ def load_network(
                 raise UnknownNetworkException(
                     f"ERROR: unknown version of ResNet: {network_name}"
                 )
-
+            network_path += '.pt'
             load_from_dict(network=network, device=device, path=network_path)
 
         elif "Vgg" in network_name:
@@ -267,8 +267,8 @@ def load_network(
 
         elif "InceptionV3" in network_name:
             network = inception_cifar10.Inception3()
-            load_from_dict(network=network, device=device, path=network_path)
             network_path += '.pt'
+            load_from_dict(network=network, device=device, path=network_path)
         else:
             raise UnknownNetworkException(f"ERROR: unknown network: {network_name}")
 
@@ -287,7 +287,7 @@ def load_network(
             raise UnknownNetworkException(
                 f"ERROR: unknown version of the model: {network_name}"
             )
-
+        network_path += '_CIFAR100.pth'
         load_from_dict(network=network, device=device, path=network_path)
 
     elif dataset_name == "GTSRB":

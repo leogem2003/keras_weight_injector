@@ -1,9 +1,9 @@
 import os
+from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
+from benchmark_models.model_conversion.args import parse_args
 from benchmark_models.tf_utils import create_manipulated_model
 
 from benchmark_models.utils import (
-    SUPPORTED_MODELS,
-    SUPPORTED_DATASETS,
     get_device,
     get_loader,
     load_network,
@@ -14,20 +14,23 @@ from torch.utils.data import DataLoader
 
 import tensorflow as tf
 from tensorflow import keras
-import argparse
 
 import nobuco
-from nobuco import ChannelOrder, converter, ChannelOrderingStrategy
+from nobuco import ChannelOrder
+#Keep this even if unused
+from benchmark_models.model_conversion.nobuco_converters import maxpool_2d, sequential
 
 from benchmark_models.inference_tools.pytorch_inference_manager import (
     PTInferenceManager,
 )
 from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
 
-# NOBUCO converters for missing operators
-
 
 class PrintShapeLayer(keras.layers.Layer):
+    """
+    Test layer to check if the output model can be manipulate in "Manipulation Testing"
+    Prints the output shape of the layer in stdout
+    """
     def __init__(self, prev_name="unknown", **kwargs):
         super(PrintShapeLayer, self).__init__(**kwargs)
         self.prev_name = prev_name
@@ -40,61 +43,6 @@ class PrintShapeLayer(keras.layers.Layer):
             # Print the desired message with the input shape
             print(f"Hello I'm {self.prev_name}, I have no shape")
         return inputs
-
-
-@converter(
-    torch.nn.Sequential,
-    channel_ordering_strategy=ChannelOrderingStrategy.FORCE_TENSORFLOW_ORDER,
-)
-def convert_Sequential(self, x):
-    kwargs = {"return_outputs_pt": True, "trace_shape": True}
-    # tf_sequential = tf.keras.Sequential()
-    temp_out = x
-
-    # for i, module in enumerate(self.children()):
-    #    b, c, h, w = temp_out.shape
-    #    seq_layer, seq_out = nobuco.pytorch_to_keras(module, input_shapes={input: (None, c, h, w)}, args=(temp_out,), **kwargs)
-    #    temp_out = seq_out
-    #    tf_sequential.add(seq_layer)
-
-    tf_layer_list = []
-
-    for i, module in enumerate(self.children()):
-        seq_layer, seq_out = nobuco.pytorch_to_keras(
-            module,
-            input_shapes={input: tuple([None] + list(temp_out.shape[1:]))},
-            args=(temp_out,),
-            inputs_channel_order=ChannelOrder.TENSORFLOW,
-            outputs_channel_order=ChannelOrder.TENSORFLOW,
-            **kwargs,
-        )
-        temp_out = seq_out
-        tf_layer_list.append(seq_layer)
-
-    def func(inp):
-        temp = inp
-        for layer in tf_layer_list:
-            temp = layer(temp)
-        return temp
-
-    return func
-
-
-@converter(
-    torch.nn.modules.pooling.MaxPool2d,
-    torch.nn.functional.max_pool2d,
-    channel_ordering_strategy=ChannelOrderingStrategy.MINIMUM_TRANSPOSITIONS,
-)
-def convert_Sequential(self: torch.nn.modules.pooling.MaxPool2d, x):
-    def func(x):
-        return keras.layers.MaxPooling2D(
-            self.kernel_size,
-            strides=self.stride,
-            padding="same",
-            data_format="channels_last",
-        )(x)
-
-    return func
 
 
 def convert_pt_to_tf(network: Module, loader: DataLoader):
@@ -118,79 +66,7 @@ def convert_pt_to_tf(network: Module, loader: DataLoader):
     return keras_model
 
 
-def parse_args():
-    """
-    Parse the argument of the network
-    :return: The parsed argument of the network
-    """
 
-    parser = argparse.ArgumentParser(
-        description="Run Inferences",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument(
-        "--forbid-cuda",
-        action="store_true",
-        help="Completely disable the usage of CUDA. This command overrides any other gpu options.",
-    )
-    parser.add_argument(
-        "--use-cuda", action="store_true", help="Use the gpu if available."
-    )
-    parser.add_argument(
-        "--batch-size", "-b", type=int, default=64, help="Test set batch size"
-    )
-    parser.add_argument(
-        "--network-name",
-        "-n",
-        type=str,
-        required=True,
-        help="Target network",
-        choices=SUPPORTED_MODELS,
-    )
-    parser.add_argument(
-        "--dataset",
-        "-d",
-        type=str,
-        required=True,
-        help="Dataset to use",
-        choices=SUPPORTED_DATASETS,
-    )
-    parser.add_argument(
-        "--overwrite",
-        "-o",
-        action="store_true",
-        help="Allow overwriting the existing network.",
-    )
-
-    parser.add_argument(
-        "--output-path",
-        "-p",
-        type=str,
-        help="Override output .keras file path. Default is models/converted-tf/{model_name}.keras.",
-    )
-
-    parser.add_argument(
-        "--skip-validation",
-        action="store_true",
-        help="Entierly skip compared validation between PyTorch and converted TensorFlow model.",
-    )
-
-    parser.add_argument(
-        "--skip-pt-validation",
-        action="store_true",
-        help="Validate only the Keras model, skipping the PyTorch validation.",
-    )
-
-    parser.add_argument(
-        "--skip-manipulation",
-        action="store_true",
-        help="Skip Manipulation test",
-    )
-
-    parsed_args = parser.parse_args()
-
-    return parsed_args
 
 
 def fake_layer_factory(layer):
@@ -286,6 +162,9 @@ def main(args):
                 loader=validation_loader_pt,
             )
             inference_executor.run_inference(save_outputs=False)
+            metric = TopKAccuracy(k=1)
+            accuracy = inference_executor.evaluate_metric(metric)
+            print(f'Pytorch accuracy: {accuracy}')
             print("STEP 4. [COMPLETED] Validating PyTorch Model.")
         else:
             print("STEP 4. [SKIPPED] Validating PyTorch Model.")
@@ -298,6 +177,9 @@ def main(args):
             loader=validation_loader_tf,
         )
         tf_inference_executor.run_inference(save_outputs=False)
+        metric = TopKAccuracy(k=1)
+        accuracy = tf_inference_executor.evaluate_metric(metric)
+        print(f'Tensorflow accuracy: {accuracy}')
         print("STEP 5. [COMPLETED] Validating converted Keras Model.")
     else:
         print("STEP 4. [SKIPPED] Validating PyTorch Model.")
