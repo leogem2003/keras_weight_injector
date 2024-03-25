@@ -17,7 +17,8 @@ from tensorflow import keras
 
 import nobuco
 from nobuco import ChannelOrder
-#Keep this even if unused
+
+# Keep this even if unused
 from benchmark_models.model_conversion.nobuco_converters import maxpool_2d, sequential
 
 from benchmark_models.inference_tools.pytorch_inference_manager import (
@@ -31,6 +32,7 @@ class PrintShapeLayer(keras.layers.Layer):
     Test layer to check if the output model can be manipulate in "Manipulation Testing"
     Prints the output shape of the layer in stdout
     """
+
     def __init__(self, prev_name="unknown", **kwargs):
         super(PrintShapeLayer, self).__init__(**kwargs)
         self.prev_name = prev_name
@@ -64,9 +66,6 @@ def convert_pt_to_tf(network: Module, loader: DataLoader):
         )
         print("Conversion from PyTorch to Keras complete.")
     return keras_model
-
-
-
 
 
 def fake_layer_factory(layer):
@@ -164,7 +163,7 @@ def main(args):
             inference_executor.run_inference(save_outputs=False)
             metric = TopKAccuracy(k=1)
             accuracy = inference_executor.evaluate_metric(metric)
-            print(f'Pytorch accuracy: {accuracy}')
+            print(f"Pytorch accuracy: {accuracy}")
             print("STEP 4. [COMPLETED] Validating PyTorch Model.")
         else:
             print("STEP 4. [SKIPPED] Validating PyTorch Model.")
@@ -179,7 +178,7 @@ def main(args):
         tf_inference_executor.run_inference(save_outputs=False)
         metric = TopKAccuracy(k=1)
         accuracy = tf_inference_executor.evaluate_metric(metric)
-        print(f'Tensorflow accuracy: {accuracy}')
+        print(f"Tensorflow accuracy: {accuracy}")
         print("STEP 5. [COMPLETED] Validating converted Keras Model.")
     else:
         print("STEP 4. [SKIPPED] Validating PyTorch Model.")

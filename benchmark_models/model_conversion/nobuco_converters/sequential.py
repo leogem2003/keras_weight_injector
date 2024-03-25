@@ -40,7 +40,7 @@ def convert_Sequential(self, x):
         )
         # Update the intermediate output of the current pytorch layer, to be used in the next
         temp_out = seq_out
-        tf_layer_list.append(seq_layer) # add the converted layer
+        tf_layer_list.append(seq_layer)  # add the converted layer
 
     def func(inp):
         # Build the graph in keras by iterating all the layers in the list

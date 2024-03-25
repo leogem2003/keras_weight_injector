@@ -36,6 +36,7 @@ from torch.utils.data import DataLoader
 class UnknownNetworkException(Exception):
     pass
 
+
 MODULE_PATH = importlib.resources.files(__package__)
 
 SUPPORTED_DATASETS = ["CIFAR10", "CIFAR100", "GTSRB", "IMAGENET"]
@@ -179,7 +180,9 @@ def load_network(
     :param device: the device where to load the network
     :return: The loaded network
     """
-    network_path = os.path.join(MODULE_PATH, 'models', 'pretrained_models', dataset_name, f'{network_name}')
+    network_path = os.path.join(
+        MODULE_PATH, "models", "pretrained_models", dataset_name, f"{network_name}"
+    )
     if dataset_name == "CIFAR10":
         if "ResNet" in network_name:
             if network_name == "ResNet20":
@@ -200,7 +203,7 @@ def load_network(
                 )
 
             network = network_function
-            network_path += '.th'
+            network_path += ".th"
             # Load the weights
             load_from_dict(network=network, device=device, path=network_path)
 
@@ -219,7 +222,7 @@ def load_network(
                 raise UnknownNetworkException(
                     f"ERROR: unknown version of ResNet: {network_name}"
                 )
-            network_path += '.pt'
+            network_path += ".pt"
             load_from_dict(network=network, device=device, path=network_path)
 
         elif "Vgg" in network_name:
@@ -235,12 +238,12 @@ def load_network(
                 raise UnknownNetworkException(
                     f"ERROR: unknown version of ResNet: {network_name}"
                 )
-            network_path += '.pt'
+            network_path += ".pt"
             load_from_dict(network=network, device=device, path=network_path)
 
         elif "GoogLeNet" in network_name:
             network = googlenet_cifar10.GoogLeNet()
-            network_path += '.pt'
+            network_path += ".pt"
             load_from_dict(network=network, device=device, path=network_path)
 
         elif "MobileNetV2" in network_name:
@@ -262,12 +265,12 @@ def load_network(
                     )
                     for key, value in state_dict.items()
                 }
-            network_path += '.pt'
+            network_path += ".pt"
             network.load_state_dict(clean_state_dict, strict=False)
 
         elif "InceptionV3" in network_name:
             network = inception_cifar10.Inception3()
-            network_path += '.pt'
+            network_path += ".pt"
             load_from_dict(network=network, device=device, path=network_path)
         else:
             raise UnknownNetworkException(f"ERROR: unknown network: {network_name}")
@@ -287,7 +290,7 @@ def load_network(
             raise UnknownNetworkException(
                 f"ERROR: unknown version of the model: {network_name}"
             )
-        network_path += '_CIFAR100.pth'
+        network_path += "_CIFAR100.pth"
         load_from_dict(network=network, device=device, path=network_path)
 
     elif dataset_name == "GTSRB":

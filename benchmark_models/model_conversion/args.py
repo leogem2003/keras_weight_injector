@@ -2,6 +2,7 @@ import argparse
 
 from benchmark_models.utils import SUPPORTED_DATASETS, SUPPORTED_MODELS
 
+
 def parse_args():
     """
     Parses command line arguments for the converter program

@@ -26,7 +26,6 @@ DEFAULT_REPORT_FOLDER = "reports"
 INJECTED_LAYERS_TYPES_KERAS = (keras.layers.Conv2D, keras.layers.Dense)
 
 
-
 @contextmanager
 def weight_bit_flip_applied(
     keras_model: keras.Model,
@@ -81,6 +80,7 @@ def weight_bit_flip_applied(
         weights[0][weight_coord] = selected_weight
         layer.set_weights(weights)
 
+
 def main(args):
     _, loader = get_loader(
         dataset_name=args.dataset,
@@ -129,10 +129,9 @@ def main(args):
     top_1_accuracy = TopKAccuracy(k=1)
     top_5_accuracy = TopKAccuracy(k=5)
     if args.sort_tf_layers:
-        print('Reordering layers')
+        print("Reordering layers")
         keras_conv_layers = natsorted(keras_conv_layers, key=lambda l: l.name)
     target_layer_mapping = dict(zip(target_layers_list, keras_conv_layers))
-
 
     inf_manager = TFInferenceManager(tf_network, "ResNet20", loader)
     inf_manager.run_clean()
@@ -188,9 +187,14 @@ def main(args):
         report_file_path = args.output_path
 
     if args.save_scores:
-        report_folder_base = os.path.join(os.path.dirname(report_file_path), datetime.now().strftime('%y%m%d_%H%M'))
+        report_folder_base = os.path.join(
+            os.path.dirname(report_file_path), datetime.now().strftime("%y%m%d_%H%M")
+        )
         os.makedirs(report_folder_base, exist_ok=True)
-        np.save(os.path.join(report_folder_base, 'clean.npy'), np.array(inf_manager.clean_output_scores))
+        np.save(
+            os.path.join(report_folder_base, "clean.npy"),
+            np.array(inf_manager.clean_output_scores),
+        )
 
     write_header = not os.path.exists(report_file_path)
     with open(report_file_path, "a") as f:
@@ -220,7 +224,10 @@ def main(args):
                 clean_out_scores = np.array(inf_manager.clean_output_scores)
                 faulty_out_scores = np.array(inf_manager.faulty_output_scores)
                 if args.save_scores:
-                    np.save(os.path.join(report_folder_base, f'inj_{inj_id}.npy'), faulty_out_scores)
+                    np.save(
+                        os.path.join(report_folder_base, f"inj_{inj_id}.npy"),
+                        faulty_out_scores,
+                    )
 
                 masked_count = (clean_out_scores == faulty_out_scores).all(axis=1).sum()
 
@@ -304,16 +311,15 @@ def parse_args():
     parser.add_argument(
         "--save-scores",
         "-s",
-        action='store_true',
+        action="store_true",
         help="Save Injection Data",
     )
     parser.add_argument(
         "--sort-tf-layers",
-        action='store_true',
+        action="store_true",
         help="(Nat)Sort TF layers by name to make them match with their layer",
     )
-    
-    
+
     parsed_args = parser.parse_args()
 
     return parsed_args

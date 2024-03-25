@@ -1,5 +1,6 @@
 import csv
 
+
 def convert_weights_coords_from_pt_to_tf(weight_coords):
     """
     Convert the order of the weights from the PyTorch axis order to TensorFlow axis order.
@@ -18,7 +19,7 @@ def convert_weights_coords_from_pt_to_tf(weight_coords):
     from PyTorch format ``(out, in)`` to Keras format ``(in, out)``
     where:
      * ``in`` represents the input feature to which the weight is applied
-     * ``out`` is the output feature targeted 
+     * ``out`` is the output feature targeted
 
     For 4D tensors used in Convolutions the function swaps the weight coordinates from the
     PyTorch convention ``(out, in, filter_x, filter_y)`` to Keras convention ``(filter_x, filter_y, in, out)``
@@ -40,17 +41,17 @@ def convert_weights_coords_from_pt_to_tf(weight_coords):
 def load_fault_list(fault_list_path: str, convert_faults_pt_to_tf=False):
     """
     Loads fault list from a .csv file. The fault list is assumed to have coordinates in
-    PyTorch coordinates. 
+    PyTorch coordinates.
 
     A faultlist is a CSV file, with a comma separator, file with the following headings:
      * ``Injection``: The progressive, zero-indexed id of the injection
-     * ``Layer``: The fully qualified name of the PyTorch layer, so that from the name 
+     * ``Layer``: The fully qualified name of the PyTorch layer, so that from the name
                   the layer can be accessed using the ``nn.Module.get_submodule`` method
     * ``TensorIndex``: The index of the weight of the layer, using PyTorch axis order. Note that biases are not considered.
     * ``Bit``: An integer indicating the bit position to flip. For float32, 0 is the LSB of signifcand, 30 is the MSB of exponent, 31 the sign
 
     The headings are specified in the first row of the file.
-    
+
     Faultlist Example
     ----
     ```csv
@@ -68,7 +69,7 @@ def load_fault_list(fault_list_path: str, convert_faults_pt_to_tf=False):
     * ``convert_faults_pt_to_tf : bool`` (default is ``False``)
     If ``True`` the PyTorch weights coordinate  in each injection of the fault list will be rearranged to be
     according to the Keras axis ordering
-    
+
     Returns
     ---
     A Tuple of two items

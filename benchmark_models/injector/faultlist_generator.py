@@ -4,14 +4,20 @@ import argparse
 
 import numpy as np
 
-from benchmark_models.utils import SUPPORTED_DATASETS, SUPPORTED_MODELS, get_loader, load_network
+from benchmark_models.utils import (
+    SUPPORTED_DATASETS,
+    SUPPORTED_MODELS,
+    get_loader,
+    load_network,
+)
 import csv
 
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 LAYERS = (nn.Conv2d, nn.Linear)
 BITWIDTH = 32
+
 
 def parse_args():
     """
@@ -45,40 +51,42 @@ def parse_args():
         help="Injections per layer",
     )
     parser.add_argument(
-        '-o',
+        "-o",
         "--output-path",
         type=str,
         help="Output Path",
     )
     parser.add_argument(
-        '-b',
+        "-b",
         "--batch-size",
         type=int,
         default=512,
         help="Batch Size",
     )
     parser.add_argument(
-        '-w',
+        "-w",
         "--bitwidth",
         type=int,
         default=32,
         help="Bitwidth",
     )
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--tensorflow",
     #    "--tf",
     #    help="Execute the network in TensorFlow. Convert it a conversion does not exists",
     #    action="store_true",
-    #)
+    # )
     parsed_args = parser.parse_args()
 
     return parsed_args
+
 
 def random_weight(shape):
     coord = []
     for dim in shape:
         coord.append(np.random.randint(dim))
     return tuple(coord)
+
 
 def main(args):
     device = torch.device(DEVICE)
@@ -99,16 +107,12 @@ def main(args):
                 coords = random_weight(module.weight.shape)
                 # bitpos = np.random.randint(args.bitwidth)
                 bitpos = 30
-                injections.append(
-                    [inj_id, name, str(coords),bitpos]
-                )
+                injections.append([inj_id, name, str(coords), bitpos])
                 inj_id += 1
-    with open(args.output_path, 'w') as csvfile:
+    with open(args.output_path, "w") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerows(injections)
 
-    
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(parse_args())

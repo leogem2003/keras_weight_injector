@@ -3,10 +3,17 @@ import csv
 from typing import Tuple
 from benchmark_models.inference_tools.inference_manager import InferenceManager
 from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
-from benchmark_models.inference_tools.pytorch_inference_manager import PTInferenceManager
+from benchmark_models.inference_tools.pytorch_inference_manager import (
+    PTInferenceManager,
+)
 from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
 from benchmark_models.injector.faultlist_loader import load_fault_list
-from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader, load_network
+from benchmark_models.utils import (
+    SUPPORTED_MODELS,
+    SUPPORTED_DATASETS,
+    get_loader,
+    load_network,
+)
 import torch
 import torch.nn as nn
 import argparse
@@ -21,6 +28,7 @@ from datetime import datetime
 from utils import float32_to_int, int_to_float32
 
 DEFAULT_REPORT_FOLDER = "reports"
+
 
 @contextmanager
 def weight_bit_flip_applied(
@@ -158,9 +166,14 @@ def main(args):
         report_file_path = args.output_path
 
     if args.save_scores:
-        report_folder_base = os.path.join(os.path.dirname(report_file_path), datetime.now().strftime('%y%m%d_%H%M'))
+        report_folder_base = os.path.join(
+            os.path.dirname(report_file_path), datetime.now().strftime("%y%m%d_%H%M")
+        )
         os.makedirs(report_folder_base, exist_ok=True)
-        np.save(os.path.join(report_folder_base, 'clean.npy'), np.array(inf_manager.clean_output_scores))
+        np.save(
+            os.path.join(report_folder_base, "clean.npy"),
+            np.array(inf_manager.clean_output_scores),
+        )
 
     write_header = not os.path.exists(report_file_path)
     with open(report_file_path, "a") as f:
@@ -174,9 +187,7 @@ def main(args):
         ):
             inj_id, target_layer_name, weight_coords, bit_pos = injection
             target_layer = network.get_submodule(target_layer_name)
-            with weight_bit_flip_applied(
-                network, target_layer, weight_coords, bit_pos
-            ):
+            with weight_bit_flip_applied(network, target_layer, weight_coords, bit_pos):
                 inf_manager.run_faulty(network)
                 inf_count = inf_manager.faulty_inference_counts
 
@@ -191,7 +202,10 @@ def main(args):
                 faulty_out_scores = np.array(inf_manager.faulty_output_scores)
 
                 if args.save_scores:
-                    np.save(os.path.join(report_folder_base, f'inj_{inj_id}.npy'), faulty_out_scores)
+                    np.save(
+                        os.path.join(report_folder_base, f"inj_{inj_id}.npy"),
+                        faulty_out_scores,
+                    )
 
                 masked_count = (clean_out_scores == faulty_out_scores).all(axis=1).sum()
 
@@ -224,6 +238,7 @@ def main(args):
                 if inj_num % 10 == 0:
                     f.flush()
                 inf_manager.reset_faulty_run()
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -274,18 +289,17 @@ def parse_args():
     parser.add_argument(
         "--save-scores",
         "-s",
-        action='store_true',
+        action="store_true",
         help="Save Injection Data",
     )
     parser.add_argument(
         "--device",
         type=str,
-        default='cuda',
-        choices=['cpu', 'cuda'],
+        default="cuda",
+        choices=["cpu", "cuda"],
         help="Device used for inference execution",
     )
-    
-    
+
     parsed_args = parser.parse_args()
 
     return parsed_args
