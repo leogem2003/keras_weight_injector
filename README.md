@@ -29,9 +29,11 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-3. Install Tensorflow with CUDA support
+3. Install the dependencies from the requirements
+You can find a requirements.txt from which you can install all dependencies using
+
 ```
-pip install "tensorflow[and-cuda]"
+pip install -r requirements.txt
 ```
 
 4. Install PyTorch for CPU. (We need PyTorch only for dataloading and for common operations, so GPU support is not needed and may create
@@ -40,14 +42,8 @@ additional problems)
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
 
-5. Install the dependencies from the requirements
-You can find a requirements.txt from which you can install all dependencies using
 
-```
-pip install -r requirements.txt
-```
-
-6. Download the pretrained networks by running
+5. Download the pretrained networks by running
 ```
 ./download_models.sh
 ```
