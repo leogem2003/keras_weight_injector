@@ -1,5 +1,10 @@
+--find-links https://download.pytorch.org/whl/torch_stable.html
+
+tensorflow[and-cuda]==2.14.0
 ipython
-keras
+keras<3.0.0
 tqdm
 tabulate
 natsort
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu
