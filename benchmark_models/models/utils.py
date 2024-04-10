@@ -252,7 +252,7 @@ def load_CIFAR100_datasets(
         dataset=val_subset, batch_size=train_batch_size, shuffle=True
     )
     test_loader = torch.utils.data.DataLoader(
-        dataset=test_dataset, batch_size=test_batch_size, shuffle=True
+        dataset=test_dataset, batch_size=test_batch_size, shuffle=False
     )
 
     print("CIFAR100 Dataset loaded")
