@@ -7,7 +7,7 @@ from tensorflow import keras
 from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
 from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
 from benchmark_models.injector.faultlist_loader import convert_weights_coords_from_pt_to_tf, load_fault_list
-from benchmark_models.injector.pt_network_profiler import profile_output_shape, profile_weight_shape
+from benchmark_models.injector.pt_module_profiler import profile_weight_shape
 from benchmark_models.injector.utils import float32_to_int, int_to_float32
 from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader, load_network
 from benchmark_models.tf_utils import load_converted_tf_network
