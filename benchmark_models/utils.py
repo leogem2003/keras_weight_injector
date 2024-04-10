@@ -2,32 +2,32 @@ import os
 import argparse
 
 import torch
-from models.utils import load_ImageNet_validation_set, load_CIFAR10_datasets
-from models.utils import load_from_dict
-
-from torchvision.models import (
-    efficientnet_b0,
-    EfficientNet_B0_Weights,
-    densenet121,
+from benchmark_models.models.utils import (
+    load_ImageNet_validation_set,
+    load_CIFAR10_datasets,
+    load_CIFAR100_datasets,
+    load_GTSRB_datasets,
 )
+from benchmark_models.models.utils import load_from_dict
 
+from benchmark_models.models.CIFAR10 import inception_cifar10
+from benchmark_models.models.CIFAR10 import mobilenetv2_cifar10
+from benchmark_models.models.CIFAR10 import googlenet_cifar10
+from benchmark_models.models.CIFAR10 import mobilenetv2_cifar10
+from benchmark_models.models.CIFAR10 import vgg_cifar10
+from benchmark_models.models.CIFAR10 import resnet_cifar10
+from benchmark_models.models.CIFAR10 import densenet_cifar10
 
-from models.cifar10.densenet import densenet121, densenet161, densenet169
-from models.cifar10.googlenet import GoogLeNet
-from models.cifar10.mobilenetv2 import MobileNetV2
-from models.cifar10.vgg import vgg11_bn, vgg13_bn, vgg16_bn, vgg19_bn
-from models.cifar10.resnet import (
-    resnet20,
-    resnet32,
-    resnet44,
-    resnet56,
-    resnet110,
-    resnet1202,
-)
+from benchmark_models.models.CIFAR100 import resnet_cifar100
+from benchmark_models.models.CIFAR100 import densenet_cifar100
+from benchmark_models.models.CIFAR100 import googlenet_cifar100
 
-import models.imagenet.VGG as vgg_imagenet
+from benchmark_models.models.GTSRB import vgg_GTSRB
+from benchmark_models.models.GTSRB import resnet_GTSRB
+from benchmark_models.models.GTSRB import densenet_GTSRB
 
-from models.cifar10.inception import Inception3
+import benchmark_models.models.imagenet.Vgg_imagenet as vgg_imagenet
+import importlib.resources
 
 # from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, densenet121, DenseNet121_Weights
 from torch.utils.data import DataLoader
@@ -37,7 +37,12 @@ class UnknownNetworkException(Exception):
     pass
 
 
-SUPPORTED_MODELS_LIST = [
+MODULE_PATH = importlib.resources.files(__package__)
+
+SUPPORTED_DATASETS = ["CIFAR10", "CIFAR100", "GTSRB", "IMAGENET"]
+
+SUPPORTED_MODELS = [
+    "ResNet18",
     "ResNet20",
     "ResNet32",
     "ResNet44",
@@ -54,7 +59,6 @@ SUPPORTED_MODELS_LIST = [
     "Vgg13_bn",
     "Vgg16_bn",
     "Vgg19_bn",
-#    "Vgg11_ImageNet"
 ]
 
 
@@ -68,7 +72,13 @@ def parse_args():
         description="Run Inferences",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-
+    parser.add_argument(
+        "--dataset",
+        "-d",
+        type=str,
+        help="Dataset to use",
+        choices=SUPPORTED_DATASETS,
+    )
     parser.add_argument(
         "--forbid-cuda",
         action="store_true",
@@ -86,7 +96,7 @@ def parse_args():
         type=str,
         required=True,
         help="Target network",
-        choices=SUPPORTED_MODELS_LIST,
+        choices=SUPPORTED_MODELS,
     )
     parser.add_argument(
         "--tensorflow",
@@ -100,11 +110,12 @@ def parse_args():
 
 
 def get_loader(
-    network_name: str,
+    dataset_name: str,
     batch_size: int,
     image_per_class: int = None,
     network: torch.nn.Module = None,
     permute_tf=False,
+    dataset_path="datasets",
 ) -> DataLoader:
     """
     Return the loader corresponding to a given network and with a specific batch size
@@ -115,46 +126,14 @@ def get_loader(
     that maximize this network accuracy. If not specified, images are selected at random
     :return: The DataLoader
     """
-    if (
-        "ResNet"
-        or "MobileNetV2"
-        or "GoogLeNet"
-        or "DenseNet"
-        or "MobileNet"
-        or "Inception"
-        or "Vgg" in network_name
-        and network_name not in ["ResNet18", "ResNet50"]
-    ):
+    if dataset_name == "CIFAR10":
         print("Loading CIFAR10 dataset")
         train_loader, _, loader = load_CIFAR10_datasets(
             test_batch_size=batch_size,
             test_image_per_class=image_per_class,
             permute_tf=permute_tf,
         )
-
-    # elif 'MobileNetV2' in network_name:
-    #     train_loader, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size,
-    #                                          test_image_per_class=image_per_class)
-    # elif 'GoogLeNet' in network_name:
-    #     train_loader, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size,
-    #                                          test_image_per_class=image_per_class)
-
-    # elif 'DenseNet' in network_name:
-    #     train_loader, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size,
-    #                                          test_image_per_class=image_per_class)
-    # elif 'MobileNet' in network_name:
-    #     train_loader, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size,
-    #                                          test_image_per_class=image_per_class)
-    # elif 'Inception' in network_name:
-    #     train_loader, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size,
-    #                                          test_image_per_class=image_per_class)
-    # elif 'Vgg' in network_name:
-    #     train_loader, _, loader = load_CIFAR10_datasets(test_batch_size=batch_size,
-    #                                          test_image_per_class=image_per_class)
-    # # elif 'LeNet' in network_name:
-    #     print('Loading MNIST dataset')
-    #     train_loader, _, loader = load_MNIST_datasets(test_batch_size=batch_size)
-    else:
+    elif dataset_name == "IMAGENET":
         if image_per_class is None:
             image_per_class = 5
         loader = load_ImageNet_validation_set(
@@ -168,121 +147,177 @@ def get_loader(
             network=network,
         )
 
+    elif dataset_name == "CIFAR100":
+        print("Loading CIFAR100 dataset")
+        train_loader, _, loader = load_CIFAR100_datasets(
+            test_batch_size=batch_size,
+            test_image_per_class=image_per_class,
+            permute_tf=permute_tf,
+        )
+
+    elif dataset_name == "GTSRB":
+        print("Loading GTSRB dataset")
+        train_loader, _, loader = load_GTSRB_datasets(
+            test_batch_size=batch_size,
+            test_image_per_class=image_per_class,
+            permute_tf=permute_tf,
+        )
+
+    else:
+        raise UnknownNetworkException(f"ERROR: unknown dataset: {dataset_name}")
+
     print(f"Batch size:\t\t{batch_size} \nNumber of batches:\t{len(loader)}")
 
     return train_loader, loader
 
 
-def load_network(network_name: str, device: torch.device) -> torch.nn.Module:
+def load_network(
+    network_name: str, device: torch.device, dataset_name: str
+) -> torch.nn.Module:
     """
     Load the network with the specified name
     :param network_name: The name of the network to load
     :param device: the device where to load the network
     :return: The loaded network
     """
+    network_path = os.path.join(
+        MODULE_PATH, "models", "pretrained_models", dataset_name, f"{network_name}"
+    )
+    if dataset_name == "CIFAR10":
+        if "ResNet" in network_name:
+            if network_name == "ResNet20":
+                network_function = resnet_cifar10.resnet20()
+            elif network_name == "ResNet32":
+                network_function = resnet_cifar10.resnet32()
+            elif network_name == "ResNet44":
+                network_function = resnet_cifar10.resnet44()
+            elif network_name == "ResNet56":
+                network_function = resnet_cifar10.resnet56()
+            elif network_name == "ResNet110":
+                network_function = resnet_cifar10.resnet110()
+            elif network_name == "ResNet1202":
+                network_function = resnet_cifar10.resnet1202()
+            else:
+                raise UnknownNetworkException(
+                    f"ERROR: unknown version of ResNet: {network_name}"
+                )
 
-    if "ResNet" in network_name:
-        if network_name == "ResNet20":
-            network_function = resnet20
-        elif network_name == "ResNet32":
-            network_function = resnet32
-        elif network_name == "ResNet44":
-            network_function = resnet44
-        elif network_name == "ResNet56":
-            network_function = resnet56
-        elif network_name == "ResNet110":
-            network_function = resnet110
-        elif network_name == "ResNet1202":
-            network_function = resnet1202
+            network = network_function
+            network_path += ".th"
+            # Load the weights
+            load_from_dict(network=network, device=device, path=network_path)
+
+        elif "Vgg" and "ImageNet" in network_name:
+            if network_name == "Vgg11_ImageNet":
+                network = vgg_imagenet.vgg11(pretrained=True)
+
+        elif "DenseNet" in network_name:
+            if network_name == "DenseNet121":
+                network = densenet_cifar10.densenet121()
+            elif network_name == "DenseNet161":
+                network = densenet_cifar10.densenet161()
+            elif network_name == "DenseNet169":
+                network = densenet_cifar10.densenet169()
+            else:
+                raise UnknownNetworkException(
+                    f"ERROR: unknown version of ResNet: {network_name}"
+                )
+            network_path += ".pt"
+            load_from_dict(network=network, device=device, path=network_path)
+
+        elif "Vgg" in network_name:
+            if network_name == "Vgg11_bn":
+                network = vgg_cifar10.vgg11_bn()
+            elif network_name == "Vgg13_bn":
+                network = vgg_cifar10.vgg13_bn()
+            elif network_name == "Vgg16_bn":
+                network = vgg_cifar10.vgg16_bn()
+            elif network_name == "Vgg19_bn":
+                network = vgg_cifar10.vgg19_bn()
+            else:
+                raise UnknownNetworkException(
+                    f"ERROR: unknown version of ResNet: {network_name}"
+                )
+            network_path += ".pt"
+            load_from_dict(network=network, device=device, path=network_path)
+
+        elif "GoogLeNet" in network_name:
+            network = googlenet_cifar10.GoogLeNet()
+            network_path += ".pt"
+            load_from_dict(network=network, device=device, path=network_path)
+
+        elif "MobileNetV2" in network_name:
+            network = mobilenetv2_cifar10.MobileNetV2()
+
+            state_dict = torch.load(network_path, map_location=device)["net"]
+            function = None
+            if function is None:
+                clean_state_dict = {
+                    key.replace("module.", ""): value
+                    for key, value in state_dict.items()
+                }
+            else:
+                clean_state_dict = {
+                    key.replace("module.", ""): (
+                        function(value)
+                        if not (("bn" in key) and ("weight" in key))
+                        else value
+                    )
+                    for key, value in state_dict.items()
+                }
+            network_path += ".pt"
+            network.load_state_dict(clean_state_dict, strict=False)
+
+        elif "InceptionV3" in network_name:
+            network = inception_cifar10.Inception3()
+            network_path += ".pt"
+            load_from_dict(network=network, device=device, path=network_path)
+        else:
+            raise UnknownNetworkException(f"ERROR: unknown network: {network_name}")
+
+    elif dataset_name == "CIFAR100":
+        print(f"Loading network {network_name}")
+        if "ResNet18" in network_name:
+            network = resnet_cifar100.resnet18()
+            print("resnet18 loaded")
+        elif "DenseNet121" in network_name:
+            network = densenet_cifar100.densenet121()
+            print("densenet121 loaded")
+        elif "GoogLeNet" in network_name:
+            network = googlenet_cifar100.googlenet()
+            print("googlenet loaded")
         else:
             raise UnknownNetworkException(
-                f"ERROR: unknown version of ResNet: {network_name}"
+                f"ERROR: unknown version of the model: {network_name}"
             )
-
-        # Instantiate the network
-        network = network_function()
-
-        # Load the weights
-        network_path = f"models/pretrained_models/cifar10/{network_name}.th"
-
+        network_path += "_CIFAR100.pth"
         load_from_dict(network=network, device=device, path=network_path)
-    elif network_name == "EfficientNet":
-        network = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
-    elif "Vgg" and "ImageNet" in network_name:
-        if network_name == "Vgg11_ImageNet":
-            network = vgg_imagenet.vgg11(pretrained=True)
-    elif "DenseNet" in network_name:
-        if network_name == "DenseNet121":
-            network = densenet121()
-        elif network_name == "DenseNet161":
-            network = densenet161()
-        elif network_name == "DenseNet169":
-            network = densenet169()
+
+    elif dataset_name == "GTSRB":
+        print(f"Loading network {network_name}")
+        if "ResNet20" in network_name:
+            network = resnet_GTSRB.resnet20()
+            print("resnet20 loaded")
+        elif "DenseNet121" in network_name:
+            network = densenet_GTSRB.densenet121()
+            print("densenet121 loaded")
+        elif "Vgg11_bn" in network_name:
+            network = vgg_GTSRB.vgg11_bn()
+            print("vgg11_bn loaded")
         else:
             raise UnknownNetworkException(
-                f"ERROR: unknown version of ResNet: {network_name}"
+                f"ERROR: unknown version of the model: {network_name}"
             )
-
-        network_path = f"models/pretrained_models/cifar10/{network_name}.pt"
-
-        load_from_dict(network=network, device=device, path=network_path)
-
-    elif "Vgg" in network_name:
-        if network_name == "Vgg11_bn":
-            network = vgg11_bn()
-        elif network_name == "Vgg13_bn":
-            network = vgg13_bn()
-        elif network_name == "Vgg16_bn":
-            network = vgg16_bn()
-        elif network_name == "Vgg19_bn":
-            network = vgg19_bn()
-        else:
-            raise UnknownNetworkException(
-                f"ERROR: unknown version of ResNet: {network_name}"
-            )
-
-        network_path = f"models/pretrained_models/cifar10/{network_name}.pt"
-
-        load_from_dict(network=network, device=device, path=network_path)
-
-    elif "GoogLeNet" in network_name:
-        network = GoogLeNet()
-        network_path = f"models/pretrained_models/cifar10/{network_name}.pt"
-
-        load_from_dict(network=network, device=device, path=network_path)
-
-    elif "MobileNetV2" in network_name:
-        network = MobileNetV2()
-        network_path = f"models/pretrained_models/cifar10/{network_name}.pt"
-
-        state_dict = torch.load(network_path, map_location=device)["net"]
-        function = None
-        if function is None:
-            clean_state_dict = {
-                key.replace("module.", ""): value for key, value in state_dict.items()
-            }
-        else:
-            clean_state_dict = {
-                key.replace("module.", ""): function(value)
-                if not (("bn" in key) and ("weight" in key))
-                else value
-                for key, value in state_dict.items()
-            }
-
-        network.load_state_dict(clean_state_dict, strict=False)
-
-    elif "InceptionV3" in network_name:
-        network = Inception3()
-        network_path = f"models/pretrained_models/cifar10/{network_name}.pt"
 
         load_from_dict(network=network, device=device, path=network_path)
 
     else:
-        raise UnknownNetworkException(f"ERROR: unknown network: {network_name}")
+        raise UnknownNetworkException(f"ERROR: unknown dataset: {dataset_name}")
 
-    # Send network to device and set for inference
     network.to(device)
     network.eval()
+
+    # Send network to device and set for inference
 
     return network
 
