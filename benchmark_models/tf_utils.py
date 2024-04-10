@@ -2,7 +2,6 @@ import os
 import tensorflow as tf
 import keras
 import importlib.resources
-from keras.src.engine import functional
 from keras.src.layers import Layer
 from typing import Callable, Optional
 
