@@ -81,3 +81,47 @@ python pt_to_csv.py -n network-name -b batch-size
 ```
 Results are saved in the ```output/network_name/csv``` folder. Notice that carrying out operation on the CSV file is going to be more expensive than carrying out the same analysis on .pt files. This format should be used only for data visualization purposes only.
 
+## Installation
+
+1. Create a virtual environment
+
+```
+python -m venv .venv
+```
+
+2. Activate the environment
+
+```
+source .venv/bin/activate
+```
+
+3. Install the dependencies from the requirements
+You can find a requirements.txt from which you can install all dependencies using
+``
+pip install -r requirements.txt
+``
+
+4. Test that GPU is available at least in Tensorflow
+* For TensorFlow run 
+```
+python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+
+```
+If GPU support is available should print a non-empty list at the end.
+
+
+* \[OPTIONAL\] For PyTorch run 
+```
+python -c "import torch; print(torch.cuda.is_available())"
+```
+It should print "True" if everything was setup. If it does not work it remains still possible to run injection in TensorFlow/Keras.
+
+5. If TensorFlow does not work with the GPU try installing it manually using [this guide](https://www.tensorflow.org/install/pip), starting from a fresh environment. Then install also the following packages included in the requirements.txt:
+* ipythonil
+* keras
+* tqdm
+* tabulate
+* natsort
+
+6. Download the pretrained networks:
+* 

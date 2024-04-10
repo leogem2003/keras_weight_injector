@@ -1,4 +1,5 @@
 import csv
+from typing import List, Sequence, Tuple
 
 
 def convert_weights_coords_from_pt_to_tf(weight_coords):
@@ -38,7 +39,7 @@ def convert_weights_coords_from_pt_to_tf(weight_coords):
     )
 
 
-def load_fault_list(fault_list_path: str, convert_faults_pt_to_tf=False):
+def load_fault_list(fault_list_path: str, convert_faults_pt_to_tf=False) -> Tuple[List[str], List[Tuple[int, str, Sequence, int]]]:
     """
     Loads fault list from a .csv file. The fault list is assumed to have coordinates in
     PyTorch coordinates.

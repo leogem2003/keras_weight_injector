@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 import csv
-import sys
+import torch
 from typing import Tuple
 import tensorflow as tf
 from tensorflow import keras
 from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
 from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
-from benchmark_models.injector.faultlist_loader import load_fault_list
+from benchmark_models.injector.faultlist_loader import convert_weights_coords_from_pt_to_tf, load_fault_list
+from benchmark_models.injector.pt_network_profiler import profile_output_shape, profile_weight_shape
 from benchmark_models.injector.utils import float32_to_int, int_to_float32
-from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader
+from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader, load_network
 from benchmark_models.tf_utils import load_converted_tf_network
 import argparse
 from contextlib import contextmanager
@@ -88,7 +89,11 @@ def main(args):
         permute_tf=True,
         dataset_path="../datasets",
     )
-
+    pt_network = load_network(
+        args.network_name,
+        torch.device("cpu"),
+        args.dataset,
+    )
     tf_network = load_converted_tf_network(
         args.network_name,
         args.dataset,
@@ -99,7 +104,7 @@ def main(args):
 
     tf_network.summary(expand_nested=True)
 
-    target_layers_list, injections = load_fault_list(
+    target_layers_names, injections = load_fault_list(
         args.fault_list, convert_faults_pt_to_tf=True
     )
 
@@ -115,15 +120,16 @@ def main(args):
 
     print(
         tabulate(
-            zip(target_layers_list, keras_conv_layers_names, weights_shapes),
+            zip(target_layers_names, keras_conv_layers_names, weights_shapes),
             headers=["PyTorch", "Keras", "Keras Weight Shape"],
         )
     )
 
-    print(f"Number of target layers: {len(target_layers_list)}")
+
+    print(f"Number of target layers: {len(target_layers_names)}")
     print(f"Number of conv layers in model: {len(keras_conv_layers)}")
 
-    if len(target_layers_list) != len(keras_conv_layers):
+    if len(target_layers_names) != len(keras_conv_layers):
         raise ValueError("Mismatching layer mapping")
 
     top_1_accuracy = TopKAccuracy(k=1)
@@ -131,7 +137,18 @@ def main(args):
     if args.sort_tf_layers:
         print("Reordering layers")
         keras_conv_layers = natsorted(keras_conv_layers, key=lambda l: l.name)
-    target_layer_mapping = dict(zip(target_layers_list, keras_conv_layers))
+
+    
+    data, label = next(iter(loader))
+    target_layers_shapes = profile_weight_shape(pt_network)
+    target_layer_mapping = dict(zip(target_layers_names, keras_conv_layers))
+
+    for pt_layer_name, tf_layer in target_layer_mapping.items():
+        pt_shape = target_layers_shapes[pt_layer_name]
+        tf_shape = tf_layer.get_weights()[0].shape
+        pt_shape_converted = convert_weights_coords_from_pt_to_tf(pt_shape)
+        if not all(a == b for a,b in  zip(pt_shape_converted, tf_shape)):
+            print(f'TF weight shape {pt_shape_converted} at layer {pt_layer_name} and PT weight {tf_shape} at layer {tf_layer.name} do not match')
 
     inf_manager = TFInferenceManager(tf_network, "ResNet20", loader)
     inf_manager.run_clean()
