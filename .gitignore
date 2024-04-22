@@ -168,6 +168,7 @@ benchmark_models/models/converted-tf/**/*
 
 scripts
 reports
+container_reports
 tmp
 classes_models
 benchmark_models/faultlists/test_faultists

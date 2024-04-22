@@ -1,6 +1,5 @@
 --find-links https://download.pytorch.org/whl/torch_stable.html
 
-tensorflow[and-cuda]==2.14.0
 ipython
 keras<3.0.0
 tqdm
