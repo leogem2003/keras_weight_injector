@@ -308,7 +308,7 @@ def load_network(
             raise UnknownNetworkException(
                 f"ERROR: unknown version of the model: {network_name}"
             )
-
+        network_path += "_GTSRB.pt"
         load_from_dict(network=network, device=device, path=network_path)
 
     else:
