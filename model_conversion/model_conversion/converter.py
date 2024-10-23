@@ -1,18 +1,18 @@
 import os
-from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
-from benchmark_models.model_conversion.args import parse_args
-from benchmark_models.tf_utils import create_manipulated_model
+from model_conversion.metric_evaluators import TopKAccuracy
+from model_conversion.args import parse_args
+from model_conversion.tf_utils import create_manipulated_model
 
 from benchmark_models.utils import (
     get_device,
     get_loader,
     load_network,
 )
+
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
-import tensorflow as tf
 from tensorflow import keras
 
 import nobuco
