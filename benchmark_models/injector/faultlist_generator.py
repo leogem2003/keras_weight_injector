@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 import torch
 import torch.nn as nn
 import argparse
@@ -89,6 +94,7 @@ def random_weight(shape):
 
 
 def main(args):
+    np.random.seed(0)  # determinism
     device = torch.device(DEVICE)
 
     network = load_network(
@@ -105,12 +111,13 @@ def main(args):
         if isinstance(module, LAYERS):
             for _ in range(args.injections_per_layer):
                 coords = random_weight(module.weight.shape)
-                # bitpos = np.random.randint(args.bitwidth)
-                bitpos = 30
+                bitpos = np.random.randint(args.bitwidth)
+                # bitpos = 30
                 injections.append([inj_id, name, str(coords), bitpos])
                 inj_id += 1
     with open(args.output_path, "w") as csvfile:
         writer = csv.writer(csvfile)
+        writer.writerow(["Injection", "Layer", "TensorIndex", "Bit"])
         writer.writerows(injections)
 
 
