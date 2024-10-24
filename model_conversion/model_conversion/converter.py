@@ -19,12 +19,9 @@ import nobuco
 from nobuco import ChannelOrder
 
 # Keep this even if unused
-from benchmark_models.model_conversion.nobuco_converters import maxpool_2d, sequential
+from model_conversion.nobuco_converters import maxpool_2d, sequential
 
-from benchmark_models.inference_tools.pytorch_inference_manager import (
-    PTInferenceManager,
-)
-from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
+from model_conversion.inference_tools import PTInferenceManager, TFInferenceManager
 
 
 class PrintShapeLayer(keras.layers.Layer):
