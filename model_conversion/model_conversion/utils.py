@@ -1,31 +1,31 @@
 import os
 
 import torch
-from benchmark_models.models.utils import (
+from model_conversion.models.utils import (
     load_ImageNet_validation_set,
     load_CIFAR10_datasets,
     load_CIFAR100_datasets,
     load_GTSRB_datasets,
 )
-from benchmark_models.models.utils import load_from_dict
+from model_conversion.models.utils import load_from_dict
 
-from benchmark_models.models.CIFAR10 import inception_cifar10
-from benchmark_models.models.CIFAR10 import mobilenetv2_cifar10
-from benchmark_models.models.CIFAR10 import googlenet_cifar10
-from benchmark_models.models.CIFAR10 import mobilenetv2_cifar10
-from benchmark_models.models.CIFAR10 import vgg_cifar10
-from benchmark_models.models.CIFAR10 import resnet_cifar10
-from benchmark_models.models.CIFAR10 import densenet_cifar10
+from model_conversion.models.CIFAR10 import inception_cifar10
+from model_conversion.models.CIFAR10 import mobilenetv2_cifar10
+from model_conversion.models.CIFAR10 import googlenet_cifar10
+from model_conversion.models.CIFAR10 import mobilenetv2_cifar10
+from model_conversion.models.CIFAR10 import vgg_cifar10
+from model_conversion.models.CIFAR10 import resnet_cifar10
+from model_conversion.models.CIFAR10 import densenet_cifar10
 
-from benchmark_models.models.CIFAR100 import resnet_cifar100
-from benchmark_models.models.CIFAR100 import densenet_cifar100
-from benchmark_models.models.CIFAR100 import googlenet_cifar100
+from model_conversion.models.CIFAR100 import resnet_cifar100
+from model_conversion.models.CIFAR100 import densenet_cifar100
+from model_conversion.models.CIFAR100 import googlenet_cifar100
 
-from benchmark_models.models.GTSRB import vgg_GTSRB
-from benchmark_models.models.GTSRB import resnet_GTSRB
-from benchmark_models.models.GTSRB import densenet_GTSRB
+from model_conversion.models.GTSRB import vgg_GTSRB
+from model_conversion.models.GTSRB import resnet_GTSRB
+from model_conversion.models.GTSRB import densenet_GTSRB
 
-import benchmark_models.models.imagenet.Vgg_imagenet as vgg_imagenet
+import model_conversion.models.imagenet.Vgg_imagenet as vgg_imagenet
 import importlib.resources
 
 # from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights, densenet121, DenseNet121_Weights
@@ -273,3 +273,32 @@ def load_network(
     # Send network to device and set for inference
 
     return network
+
+
+def get_device(forbid_cuda: bool, use_cuda: bool) -> torch.device:
+    """
+    Get the device where to perform the fault injection
+    :param forbid_cuda: Forbids the usage of cuda. Overrides use_cuda
+    :param use_cuda: Whether to use the cuda device or the cpu
+    :return: The device where to perform the fault injection
+    """
+
+    # Disable gpu if set
+    if forbid_cuda:
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        device = "cpu"
+        if use_cuda:
+            print("WARNING: cuda forcibly disabled even if set_cuda is set")
+    # Otherwise, use the appropriate device
+    else:
+        if use_cuda:
+            if torch.cuda.is_available():
+                device = "cuda"
+            else:
+                device = ""
+                print("ERROR: cuda not available even if use-cuda is set")
+                exit(-1)
+        else:
+            device = "cpu"
+
+    return torch.device(device)

@@ -3,7 +3,7 @@ from model_conversion.metric_evaluators import TopKAccuracy
 from model_conversion.args import parse_args
 from model_conversion.tf_utils import create_manipulated_model
 
-from benchmark_models.utils import (
+from model_conversion.utils import (
     get_device,
     get_loader,
     load_network,
