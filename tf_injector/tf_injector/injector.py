@@ -135,7 +135,8 @@ class Injector:
             gold_output = gold_row_metric(gold_scores, labels)
             if outputter:
                 outputter.write_gold(gold_output)
-                outputter.save_scores(gold_scores)
+                if save_scores:
+                    outputter.save_scores(gold_scores)
 
         if faulty_row_metric_maker:
             faulty_row_metric = faulty_row_metric_maker(gold_scores, gold_labels)
@@ -155,7 +156,8 @@ class Injector:
                             fault,
                             faulty_row_metric(faulty_scores, labels),
                         )
-                        outputter.save_scores(faulty_scores, inj_id=fault_id)
+                        if save_scores:
+                            outputter.save_scores(faulty_scores, inj_id=fault_id)
             fault_id += 1
 
     def _reset_fault(self):
