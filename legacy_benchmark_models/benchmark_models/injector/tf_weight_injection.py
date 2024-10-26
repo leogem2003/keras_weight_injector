@@ -1,25 +1,34 @@
-from dataclasses import dataclass
-import csv
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 import torch
 from typing import Tuple
-import tensorflow as tf
 from tensorflow import keras
 from benchmark_models.inference_tools.metric_evaluators import TopKAccuracy
 from benchmark_models.inference_tools.tf_inference_manager import TFInferenceManager
-from benchmark_models.injector.faultlist_loader import convert_weights_coords_from_pt_to_tf, load_fault_list
+from benchmark_models.injector.faultlist_loader import (
+    convert_weights_coords_from_pt_to_tf,
+    load_fault_list,
+)
 from benchmark_models.injector.pt_module_profiler import profile_weight_shape
 from benchmark_models.injector.utils import float32_to_int, int_to_float32
-from benchmark_models.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, get_loader, load_network
+from benchmark_models.utils import (
+    SUPPORTED_MODELS,
+    SUPPORTED_DATASETS,
+    get_loader,
+    load_network,
+)
 from benchmark_models.tf_utils import load_converted_tf_network
 import argparse
 from contextlib import contextmanager
 from operator import attrgetter
 from tabulate import tabulate
-import struct
 from tqdm import tqdm
 import numpy as np
 import csv
-import os
+
 from datetime import datetime
 from natsort import natsorted
 
@@ -82,6 +91,37 @@ def weight_bit_flip_applied(
         layer.set_weights(weights)
 
 
+import tensorflow as tf
+
+
+def save_tf_dataset(loader, dataset_name):
+    save_dir = os.path.join("tf_injector/datasets/", dataset_name)
+    data_batches = []
+    labels_batches = []
+
+    for data, labels in loader:
+        print("loading batch")
+        data_batches.append(data.numpy())
+        labels_batches.append(labels.numpy())
+
+    data = tf.convert_to_tensor(np.concatenate(data_batches, axis=0))
+    labels = tf.convert_to_tensor(
+        np.concatenate(labels_batches, axis=0), dtype=np.uint32
+    )
+    print(data.shape)
+    print(labels)
+    tf_data = tf.data.Dataset.from_tensor_slices((data, labels))
+    print(tf_data)
+    print("saving dataset at:", save_dir)
+    tf_data.save(save_dir)
+    print("saved)")
+    reload = tf.data.Dataset.load(save_dir)
+    batch = reload.batch(64)
+    for data in batch:
+        print("processing batch", batch)
+        img, label = data
+
+
 def main(args):
     _, loader = get_loader(
         dataset_name=args.dataset,
@@ -89,6 +129,10 @@ def main(args):
         permute_tf=True,
         dataset_path="../datasets",
     )
+
+    # next(iter(loader))
+    # save_tf_dataset(loader, args.dataset)
+    # return  # TODO remove
     pt_network = load_network(
         args.network_name,
         torch.device("cpu"),
@@ -102,7 +146,7 @@ def main(args):
     faulty_network = keras.models.clone_model(tf_network)
     faulty_network.set_weights(tf_network.get_weights())
 
-    tf_network.summary(expand_nested=True)
+    # tf_network.summary(expand_nested=True)
 
     target_layers_names, injections = load_fault_list(
         args.fault_list, convert_faults_pt_to_tf=True
@@ -125,7 +169,6 @@ def main(args):
         )
     )
 
-
     print(f"Number of target layers: {len(target_layers_names)}")
     print(f"Number of conv layers in model: {len(keras_conv_layers)}")
 
@@ -138,17 +181,17 @@ def main(args):
         print("Reordering layers")
         keras_conv_layers = natsorted(keras_conv_layers, key=lambda l: l.name)
 
-    
     data, label = next(iter(loader))
     target_layers_shapes = profile_weight_shape(pt_network)
     target_layer_mapping = dict(zip(target_layers_names, keras_conv_layers))
-
     for pt_layer_name, tf_layer in target_layer_mapping.items():
         pt_shape = target_layers_shapes[pt_layer_name]
         tf_shape = tf_layer.get_weights()[0].shape
         pt_shape_converted = convert_weights_coords_from_pt_to_tf(pt_shape)
-        if not all(a == b for a,b in  zip(pt_shape_converted, tf_shape)):
-            print(f'TF weight shape {pt_shape_converted} at layer {pt_layer_name} and PT weight {tf_shape} at layer {tf_layer.name} do not match')
+        if not all(a == b for a, b in zip(pt_shape_converted, tf_shape)):
+            print(
+                f"TF weight shape {pt_shape_converted} at layer {pt_layer_name} and PT weight {tf_shape} at layer {tf_layer.name} do not match"
+            )
 
     inf_manager = TFInferenceManager(tf_network, "ResNet20", loader)
     inf_manager.run_clean()
@@ -208,6 +251,7 @@ def main(args):
             os.path.dirname(report_file_path), datetime.now().strftime("%y%m%d_%H%M")
         )
         os.makedirs(report_folder_base, exist_ok=True)
+        print("saving in", report_folder_base)
         np.save(
             os.path.join(report_folder_base, "clean.npy"),
             np.array(inf_manager.clean_output_scores),

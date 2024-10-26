@@ -1,8 +1,11 @@
 import os
-import tensorflow as tf
-import keras
+
+# import keras
 import importlib.resources
-from keras.src.layers import Layer
+
+# from keras.src.layers import Layer
+from tensorflow import keras
+from tensorflow.keras.layers import Layer
 from typing import Callable, Optional
 
 
