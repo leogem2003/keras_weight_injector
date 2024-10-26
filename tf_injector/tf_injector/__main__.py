@@ -62,6 +62,7 @@ def parse_args():
         "--save-scores",
         "-s",
         action="store_true",
+        default=False,
         help="Save Injection Data",
     )
     parser.add_argument(  # useless?
