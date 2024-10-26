@@ -4,7 +4,7 @@ import tensorflow as tf  # type:ignore
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-from tf_injector.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS
+from tf_injector.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, DEFAULT_REPORT_DIR
 from tf_injector.loader import load_network
 from tf_injector.injector import Injector
 from tf_injector.metrics import gold_row_std_metric, make_faulty_row_std_metric
@@ -47,6 +47,7 @@ def parse_args():
         "-o",
         type=str,
         required=False,
+        default=DEFAULT_REPORT_DIR,
         help="Path to the generated output",
     )
     parser.add_argument(
@@ -86,7 +87,7 @@ def main(args):
         sort_layers=args.sort_tf_layers,
     )
     injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
-    with CampaignWriter(args.dataset, args.network_name) as cw:
+    with CampaignWriter(args.dataset, args.network_name, args.output_path) as cw:
         injector.run_campaign(
             batch=args.batch_size,
             save_scores=args.save_scores,

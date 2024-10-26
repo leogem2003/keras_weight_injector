@@ -114,6 +114,7 @@ class Injector:
     def run_campaign(
         self,
         batch: int = 64,
+        save_scores: bool = False,
         gold_row_metric: Callable | None = None,
         faulty_row_metric_maker: Callable[..., Callable] | None = None,
         outputter: CampaignWriter | None = None,
@@ -134,6 +135,7 @@ class Injector:
             gold_output = gold_row_metric(gold_scores, labels)
             if outputter:
                 outputter.write_gold(gold_output)
+                outputter.save_scores(gold_scores)
 
         if faulty_row_metric_maker:
             faulty_row_metric = faulty_row_metric_maker(gold_scores, gold_labels)
@@ -144,7 +146,7 @@ class Injector:
         fault_id = self.faults.resume_idx
         for fault in pbar:
             with self._apply_fault(fault):
-                faulty_scores, _ = self.run_inference(batch, faulty=True)
+                faulty_scores, labels = self.run_inference(batch, faulty=True)
                 if faulty_row_metric:
                     if outputter:
                         outputter.write_fault(
@@ -153,6 +155,7 @@ class Injector:
                             fault,
                             faulty_row_metric(faulty_scores, labels),
                         )
+                        outputter.save_scores(faulty_scores, inj_id=fault_id)
             fault_id += 1
 
     def _reset_fault(self):
