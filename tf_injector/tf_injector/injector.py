@@ -6,7 +6,7 @@ import csv
 import shutil
 from dataclasses import dataclass, field
 from contextlib import contextmanager
-from typing import TypeAlias
+from typing import TypeAlias, Callable
 from tf_injector.utils import INJECTED_LAYERS_TYPES
 
 FaultType: TypeAlias = tuple[str, tuple[int, ...], int]
@@ -87,18 +87,33 @@ class Injector:
             ncols=shutil.get_terminal_size().columns,
         )
 
-    def _run_inference_on_batch(self, data):
+    def _run_inference_on_batch(self, data) -> np.ndarray:
         return self.network(data).numpy()
 
-    def run_inference(self, batch: int, faulty: bool = False):
+    def run_inference(
+        self, batch: int, faulty: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
         batched = self.dataset.batch(batch)
         pbar = self._tqdm(batched, faulty)
+        batch_predictions: list[np.ndarray] = []
+        batch_labels: list[np.ndarray] = []
         for batch in pbar:
             # type:ignore
             data, label = batch
-            self._run_inference_on_batch(data)
+            batch_predictions.append(self._run_inference_on_batch(data))
+            batch_labels.append(label.numpy())
 
-    def run_campaign(self, batch: int = 64):
+        predictions = np.concatenate(batch_predictions, axis=0)
+        labels = np.concatenate(batch_labels, axis=0)
+        return predictions, np.expand_dims(labels, axis=1)
+
+    def run_campaign(
+        self,
+        batch: int = 64,
+        gold_row_metric: Callable | None = None,
+        faulty_row_metric_maker: Callable[..., Callable] | None = None,
+        outputter: CampaignWriter | None = None,
+    ):
         """
         Runs a campaign with the loaded fault list
         Params:
@@ -108,12 +123,31 @@ class Injector:
             raise RuntimeError(
                 "attempting to run a campaign without a fault list loaded"
             )
+        gold_scores, labels = self.run_inference(batch, faulty=False)  # clean run
+        gold_labels = np.expand_dims(gold_scores.argmax(axis=1), axis=1)
+
+        if gold_row_metric:
+            gold_output = gold_row_metric(gold_scores, labels)
+            if outputter:
+                outputter.write_gold(gold_output)
+        if faulty_row_metric_maker:
+            faulty_row_metric = faulty_row_metric_maker(gold_scores, gold_labels)
+        else:
+            faulty_row_metric = None
 
         pbar = self._tqdm(self.faults.faults, False)
         fault_id = self.faults.resume_idx
         for fault in pbar:
             with self._apply_fault(fault):
-                self.run_inference(batch, faulty=True)
+                faulty_scores, labels = self.run_inference(batch, faulty=True)
+                if faulty_row_metric:
+                    faulty_output = (
+                        fault_id,
+                        *fault,
+                        *faulty_row_metric(faulty_scores, labels),
+                    )
+                    if outputter:
+                        outputter.write_faulty(faulty_output)
             fault_id += 1
 
     def _reset_fault(self):

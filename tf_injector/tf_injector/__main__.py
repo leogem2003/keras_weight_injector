@@ -7,6 +7,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 from tf_injector.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS
 from tf_injector.loader import load_network
 from tf_injector.injector import Injector
+from tf_injector.metrics import gold_row_std_metric, make_faulty_row_std_metric
 
 
 def parse_args():
@@ -77,20 +78,18 @@ def _pr(*args, end=""):
 
 
 def main(args):
-    _pr("loading network... ")
     network, dataset = load_network(args.network_name, args.dataset)
-    _pr("done\n")
     injector = Injector(
         network,
         dataset,
         sort_layers=args.sort_tf_layers,
     )
-    _pr("loading injection... ")
     injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
-    _pr("done\n")
+
     injector.run_campaign(
         batch=args.batch_size,
-        # metric_function=std_metric_function,
+        gold_row_metric=gold_row_std_metric,
+        faulty_row_metric_maker=make_faulty_row_std_metric,
     )
 
 
