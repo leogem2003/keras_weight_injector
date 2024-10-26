@@ -8,6 +8,7 @@ from tf_injector.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS
 from tf_injector.loader import load_network
 from tf_injector.injector import Injector
 from tf_injector.metrics import gold_row_std_metric, make_faulty_row_std_metric
+from tf_injector.writer import CampaignWriter
 
 
 def parse_args():
@@ -62,7 +63,7 @@ def parse_args():
         action="store_true",
         help="Save Injection Data",
     )
-    parser.add_argument(
+    parser.add_argument(  # useless?
         "--sort-tf-layers",
         action="store_true",
         help="(Nat)Sort TF layers by name to make them match with their layer",
@@ -85,12 +86,14 @@ def main(args):
         sort_layers=args.sort_tf_layers,
     )
     injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
-
-    injector.run_campaign(
-        batch=args.batch_size,
-        gold_row_metric=gold_row_std_metric,
-        faulty_row_metric_maker=make_faulty_row_std_metric,
-    )
+    with CampaignWriter(args.dataset, args.network_name) as cw:
+        injector.run_campaign(
+            batch=args.batch_size,
+            save_scores=args.save_scores,
+            gold_row_metric=gold_row_std_metric,
+            faulty_row_metric_maker=make_faulty_row_std_metric,
+            outputter=cw,
+        )
 
 
 if __name__ == "__main__":

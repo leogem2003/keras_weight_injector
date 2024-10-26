@@ -1,12 +1,16 @@
 import tensorflow as tf  # type:ignore
 from tensorflow import keras  # type:ignore
 from tqdm import tqdm  # type:ignore
+
 import numpy as np
 import csv
 import shutil
+
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 from typing import TypeAlias, Callable
+
+from tf_injector.writer import CampaignWriter
 from tf_injector.utils import INJECTED_LAYERS_TYPES
 
 FaultType: TypeAlias = tuple[str, tuple[int, ...], int]
@@ -124,12 +128,13 @@ class Injector:
                 "attempting to run a campaign without a fault list loaded"
             )
         gold_scores, labels = self.run_inference(batch, faulty=False)  # clean run
-        gold_labels = np.expand_dims(gold_scores.argmax(axis=1), axis=1)
+        gold_labels = gold_scores.argmax(axis=1, keepdims=True)
 
         if gold_row_metric:
             gold_output = gold_row_metric(gold_scores, labels)
             if outputter:
                 outputter.write_gold(gold_output)
+
         if faulty_row_metric_maker:
             faulty_row_metric = faulty_row_metric_maker(gold_scores, gold_labels)
         else:
@@ -139,15 +144,15 @@ class Injector:
         fault_id = self.faults.resume_idx
         for fault in pbar:
             with self._apply_fault(fault):
-                faulty_scores, labels = self.run_inference(batch, faulty=True)
+                faulty_scores, _ = self.run_inference(batch, faulty=True)
                 if faulty_row_metric:
-                    faulty_output = (
-                        fault_id,
-                        *fault,
-                        *faulty_row_metric(faulty_scores, labels),
-                    )
                     if outputter:
-                        outputter.write_faulty(faulty_output)
+                        outputter.write_fault(
+                            fault_id,
+                            len(labels),
+                            fault,
+                            faulty_row_metric(faulty_scores, labels),
+                        )
             fault_id += 1
 
     def _reset_fault(self):
