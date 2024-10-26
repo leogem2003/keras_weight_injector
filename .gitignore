@@ -164,6 +164,8 @@ cython_debug/
 **/models/converted-tf/**/*
 !**/models/converted-tf/**/*.md
 
+tf_injector/models/**
+!tf_injector/models/**/.md
 
 scripts
 reports
