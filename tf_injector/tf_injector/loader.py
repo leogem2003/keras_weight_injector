@@ -15,6 +15,6 @@ def load_network(
     model = keras.models.load_model(model_path)
 
     dataset_path = os.path.join(dataset_path, dataset_name)
-    dataset = tf.data.Dataset.load(dataset_path)
+    dataset = tf.data.Dataset.load(dataset_path, compression="GZIP")
 
     return model, dataset
