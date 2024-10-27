@@ -83,11 +83,11 @@ class Injector:
         assert set(self.target_layers.keys()) == included_layers
 
     @staticmethod
-    def _tqdm(iterable, faulty: bool) -> tqdm:
+    def _tqdm(iterable, faulty: bool, desc: str) -> tqdm:
         return tqdm(
             iterable,
             colour="red" if faulty else "green",
-            desc="Faulty Run" if faulty else "Clean Run",
+            desc=desc,
             ncols=shutil.get_terminal_size().columns,
         )
 
@@ -98,7 +98,7 @@ class Injector:
         self, batch: int, faulty: bool = False
     ) -> tuple[np.ndarray, np.ndarray]:
         batched = self.dataset.batch(batch)
-        pbar = self._tqdm(batched, faulty)
+        pbar = self._tqdm(batched, faulty, "Faulty run" if faulty else "Clean run")
         batch_predictions: list[np.ndarray] = []
         batch_labels: list[np.ndarray] = []
         for batch in pbar:
@@ -143,7 +143,7 @@ class Injector:
         else:
             faulty_row_metric = None
 
-        pbar = self._tqdm(self.faults.faults, False)
+        pbar = self._tqdm(self.faults.faults, False, "Injection")
         fault_id = self.faults.resume_idx
         for fault in pbar:
             with self._apply_fault(fault):
