@@ -62,6 +62,53 @@ SUPPORTED_MODELS = [
 ]
 
 
+def parse_args():
+    """
+    Parse the argument of the network
+    :return: The parsed argument of the network
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Run Inferences",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--dataset",
+        "-d",
+        type=str,
+        help="Dataset to use",
+        choices=SUPPORTED_DATASETS,
+    )
+    parser.add_argument(
+        "--forbid-cuda",
+        action="store_true",
+        help="Completely disable the usage of CUDA. This command overrides any other gpu options.",
+    )
+    parser.add_argument(
+        "--use-cuda", action="store_true", help="Use the gpu if available."
+    )
+    parser.add_argument(
+        "--batch-size", "-b", type=int, default=64, help="Test set batch size"
+    )
+    parser.add_argument(
+        "--network-name",
+        "-n",
+        type=str,
+        required=True,
+        help="Target network",
+        choices=SUPPORTED_MODELS,
+    )
+    parser.add_argument(
+        "--tensorflow",
+        "--tf",
+        help="Execute the network in TensorFlow. Convert it a conversion does not exists",
+        action="store_true",
+    )
+    parsed_args = parser.parse_args()
+
+    return parsed_args
+
+
 def get_loader(
     dataset_name: str,
     batch_size: int,
