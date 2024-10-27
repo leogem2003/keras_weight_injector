@@ -121,10 +121,7 @@ class InferenceManager(ABC):
 import torch
 from torch.nn import Module
 from torch.utils.data import DataLoader
-import numpy as np
 from tqdm import tqdm
-
-from benchmark_models.inference_tools.inference_manager import InferenceManager
 
 
 class PTInferenceManager(InferenceManager):

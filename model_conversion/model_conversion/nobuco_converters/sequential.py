@@ -1,4 +1,4 @@
-from benchmark_models.tf_utils import create_manipulated_model
+from model_conversion.tf_utils import create_manipulated_model
 
 import torch
 

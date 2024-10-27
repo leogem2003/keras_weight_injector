@@ -2,6 +2,7 @@
 
 #ipython
 numpy<2.0.0 #for compatibility
+nobuco
 tensorflow[and-cuda]==2.14.1
 keras<3.0.0
 tqdm
