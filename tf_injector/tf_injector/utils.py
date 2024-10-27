@@ -3,7 +3,7 @@ import os
 
 from tensorflow import keras  # type:ignore
 
-SUPPORTED_DATASETS = ["CIFAR10", "CIFAR100", "GTSRB", "IMAGENET"]
+SUPPORTED_DATASETS = ["CIFAR10", "CIFAR100", "GTSRB"]
 
 SUPPORTED_MODELS = [
     "ResNet18",
