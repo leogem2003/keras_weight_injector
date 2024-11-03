@@ -91,37 +91,6 @@ def weight_bit_flip_applied(
         layer.set_weights(weights)
 
 
-import tensorflow as tf
-
-
-def save_tf_dataset(loader, dataset_name):
-    save_dir = os.path.join("tf_injector/datasets/", dataset_name)
-    data_batches = []
-    labels_batches = []
-
-    for data, labels in loader:
-        print("loading batch")
-        data_batches.append(data.numpy())
-        labels_batches.append(labels.numpy())
-
-    data = tf.convert_to_tensor(np.concatenate(data_batches, axis=0))
-    labels = tf.convert_to_tensor(
-        np.concatenate(labels_batches, axis=0), dtype=np.uint32
-    )
-    print(data.shape)
-    print(labels)
-    tf_data = tf.data.Dataset.from_tensor_slices((data, labels))
-    print(tf_data)
-    print("saving dataset at:", save_dir)
-    tf_data.save(save_dir)
-    print("saved)")
-    reload = tf.data.Dataset.load(save_dir)
-    batch = reload.batch(64)
-    for data in batch:
-        print("processing batch", batch)
-        img, label = data
-
-
 def main(args):
     _, loader = get_loader(
         dataset_name=args.dataset,
@@ -130,9 +99,6 @@ def main(args):
         dataset_path="../datasets",
     )
 
-    # next(iter(loader))
-    # save_tf_dataset(loader, args.dataset)
-    # return  # TODO remove
     pt_network = load_network(
         args.network_name,
         torch.device("cpu"),
