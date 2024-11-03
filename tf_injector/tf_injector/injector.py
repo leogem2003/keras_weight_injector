@@ -80,7 +80,12 @@ class Injector:
                     self.faults.faults.append((layer, int_coords, int(bit)))
 
         # all target layers are in injection list
-        assert set(self.target_layers.keys()) == included_layers
+        target_layers = set(self.target_layers.keys())
+        assert (
+            target_layers == included_layers
+        ), f"Fault layers and target layers didn't match: \n \
+            not included in the fault list: {target_layers-included_layers} \n \
+            not present in the network: {included_layers-target_layers}"
 
     @staticmethod
     def _tqdm(iterable, faulty: bool, desc: str) -> tqdm:
