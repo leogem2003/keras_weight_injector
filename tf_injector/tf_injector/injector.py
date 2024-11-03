@@ -26,7 +26,7 @@ class FaultList:
 class Injector:
     """
     class Injector
-    performs fault injections on tensorflow networks
+    performs fault injections on Tensorflow networks
     """
 
     def __init__(
@@ -123,6 +123,11 @@ class Injector:
         Runs a campaign with the loaded fault list
         Params:
             batch: inference batch size (default=64)
+            save_scores: whether save scores as numpy array (default=False)
+            gold_row_metric: a callable which computes metrics on the gold row.
+            faulty_row_metric_maker: a callable which build a metric function for
+                faults using gold scores and labels
+            outputter: CampaignWriter instance
         """
         if not self.faults.faults:
             raise RuntimeError(
