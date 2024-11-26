@@ -1,6 +1,15 @@
 # tf_injector
 Fault injector for Tensorflow2 modules.
 
+## Project Collaboration
+
+This project is a collaboration between the following institutions:
+
+- [Politecnico di Torino](https://www.polito.it/)
+- [Politecnico di Milano](https://www.polimi.it/)
+- [Ecole Centrale de Lyon](https://www.ec-lyon.fr/en)
+
+
 ## Setup
 1. Ensure you have Python 3.10 installed in your working environment
 2. Create a virtual environment
@@ -12,6 +21,52 @@ source venv_name/bin/activate
 ```
 pip install -r requirements.txt
 ```
+## Available Models (so far)
+
+The Keras versions of the models, when available, are obtained using the [nobuco](https://github.com/AlexanderLutsenko/nobuco) PyTorch to Keras converter.
+The Keras versions of all models share the same structure and weigths, and have similar accuracies to their PyTorch counterpart.
+
+### CIFAR-10 Models
+Here is a list of models trained for CIFAR10 dataset, that has images belonging to 10 classes.
+All the models are validated using the CIFAR10 validation set, that cointains 10000 images.
+
+| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |  Sources  | Notes     |
+| ------------ | ----------------------- | -------------------- |---------- |-----------|
+| ResNet20     | 91.5 %                  | 91.5 %               |           |           |
+| ResNet32     | 92.3 %                  | 92.3 %               |           |           |
+| ResNet44     | 92.8 %                  | 92.8 %               |           |           |
+| ResNet56     | 93.3 %                  | 93.3 %               |           |           |
+| ResNet110    | 93.5 %                  | 93.5 %               |           |           |
+| MobileNetV2  | 91.7 %                  | 91.7 %               |           |           |
+| Vgg19_bn     | 93.2 %                  | 93.2 %               |           |           |
+| Vgg16_bn     | 93.5 %                  | 93.5 %               |           |           |
+| Vgg13_bn     | 93.8 %                  | 93.8 %               |           |           | 
+| Vgg11_bn     | 91.3 %                  | 91.3 %               |           |           |
+| DenseNet121  | 93.2 %                  | 93.1 %               |           |           | 
+| DenseNet161  | 93.1 %                  | 93.1 %               |           |           |          
+| GoogLeNet    | 92.2 %                  | 92.2 %               |           |           | 
+
+### CIFAR-100 Models
+Here is a list of models trained for CIFAR100 dataset, that has images belonging to 100 classes.
+All the models are validated using the CIFAR100 validation set, that cointains 10000 images.
+
+| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |  Sources  | Notes                     |
+| ------------ | ----------------------- |--------------------- |---------- | ------------------------- |
+| ResNet18     | 76.2 %                  | 76.2 %               |           |                           |
+| DenseNet121  | 78.7 %                  | 78.7 %               |           |                           |
+| GoogLeNet    | 76.3 %                  | 76.3 %               |           |                           |
+
+### GTSRB Models
+Here is a list of models trained for GTSRB dataset, containing 43 classes of German Traffic signals.
+All the models are validated using the GTSRB validation set, that cointains 12640 images.
+
+| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |  Sources  | Notes                     |
+| ------------ | ----------------------- |--------------------- |---------- | ------------------------- |
+| ResNet20     |                         |                      |           | (Conversion Failed)?      |
+| DenseNet121  | 96.5%                   | 96.5%                |           |                           |
+| Vgg11_bn     |                         |                      |           | (Conversion Failed)?      |
+
+
 ## Usage
 Run as a python module:
 ```
@@ -24,7 +79,6 @@ python -m tf_injector --help
 ## Input
 To run an injection campaign, you will need:
 - A target network saved in `.keras` format, saved in `models/<dataset>/<network>.keras`
-- A dataset compatible with tensorflow datasets, saved in `datasets/<dataset>` 
 - A fault list compatible with the target network in csv format (header needed)
 
 | Injection | Layer  |   TensorIndex   | Bit |
