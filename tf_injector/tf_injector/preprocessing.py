@@ -5,9 +5,7 @@ import numpy as np
 TransformType: TypeAlias = tuple[float, float, float]
 
 
-def make_preprocessor(
-    mean: TransformType, std: TransformType
-) -> Callable[[tf.Tensor, tf.Tensor], tuple[tf.Tensor, tf.Tensor]]:
+def make_preprocessor(mean: TransformType, std: TransformType) -> Callable:
     mean_np = np.array(mean, dtype=np.float32)
     std_np = np.array(std, dtype=np.float32)
 

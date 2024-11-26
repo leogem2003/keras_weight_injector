@@ -114,7 +114,7 @@ class Injector:
 
         predictions = np.concatenate(batch_predictions, axis=0)
         labels = np.concatenate(batch_labels, axis=0)
-        return predictions, np.expand_dims(labels, axis=1)
+        return predictions, labels
 
     def run_campaign(
         self,
