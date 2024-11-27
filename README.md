@@ -12,5 +12,5 @@ Saves torch datasets as keras datasets
 ### tf_injector
 Injector for Tensorflow2 models
 
-### pt_injector
-Injector for Torch models
+### ptxtf_utils
+Utility scripts for matching and converting fault lists between PT and TF
