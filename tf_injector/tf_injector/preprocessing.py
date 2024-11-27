@@ -21,6 +21,7 @@ def make_preprocessor(mean: TransformType, std: TransformType) -> Callable:
         image = np.float32(image) / np.float32(255.0)
         # image = tf.image.convert_image_dtype(image, dtype=tf.float32)
         image = (image - mean_np) / std_np
+        label = np.array(label, dtype=np.uint8)
         return image, label
 
     return numpy_preprocessor

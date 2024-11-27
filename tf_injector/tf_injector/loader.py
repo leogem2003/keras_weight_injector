@@ -24,19 +24,19 @@ def load_gtsrb():
     return tf.data.Dataset.load(str(dt_path), compression="GZIP")
 
 
-def from_tensor_slice(loader):
+def from_tensor_slices(loader):
     def wrapper():
-        return tf.data.Dataset.from_tensor_slice(loader()[1])
+        return tf.data.Dataset.from_tensor_slices(loader()[1])
 
     return wrapper
 
 
-@from_tensor_slice
+@from_tensor_slices
 def load_cifar10():
     return keras.datasets.cifar10.load_data()
 
 
-@from_tensor_slice
+@from_tensor_slices
 def load_cifar100():
     return keras.datasets.cifar100.load_data()
 
