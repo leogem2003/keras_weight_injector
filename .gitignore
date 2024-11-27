@@ -159,10 +159,12 @@ cython_debug/
 **/weights/
 
 # Ignore all weights files except for a placeholder .md file (This is due to git that does not support adding empty folders)
-legacy_benchmark_models/**/models/pretrained_models/**/*
+**/models/pretrained_models/**/*
 !**/models/pretrained_models/**/*.md
-legacy_benchmark_models/**/models/converted-tf/**/*
+**/models/converted-tf/**/*
 !**/models/converted-tf/**/*.md
+
+!tf_injector/models/**
 
 scripts
 reports
