@@ -7,6 +7,9 @@ from torch import nn
 
 
 def get_pt(path: str, name: str):
+    """
+    Executes at runtime a python module saved in path containing a Torch network of given name. Returns such network. Ensure the execution module has a trusted origin.
+    """
     spec = importlib.util.spec_from_file_location("pt_network", path)
     if spec is None:
         raise FileNotFoundError(f"Cannot find file {path}")

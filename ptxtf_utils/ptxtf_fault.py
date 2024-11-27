@@ -5,7 +5,9 @@ from typing import Callable, TypeVar
 
 def create_matcher(file, rtl=True) -> dict[str, str]:
     matcher = {}
-    for line in file.readlines():
+    reader = file.readlines()
+    next(iter(reader))  # skip header
+    for line in reader:
         pt, tf = line.split(",")
         tf = tf.strip()
         if rtl:  # tf->pt
@@ -15,15 +17,35 @@ def create_matcher(file, rtl=True) -> dict[str, str]:
 
 
 def translate_fault(
-    reader, writer, layer_matcher: dict[str, str], bit_permutation: Callable
+    reader,
+    writer,
+    layer_matcher: dict[str, str],
+    bit_permutation: Callable[[tuple], tuple],
+    skip_row: bool = False,
 ):
+    """
+    Translates a fault list in csv format, applying bit_permutation to coordinates.
+    Args:
+        reader: iterable input object
+        writer: csv._writer object
+        layer_matcher: dict containing matching layers (in->out)
+        bit_permutation: a callable that permutes coordinates
+        skip_row: skip the second row (gold row in injector reports)
+    """
     writer.writerow(next(iter(reader)))  # header
+    if skip_row:
+        writer.writerow(next(iter(reader)))  # gold row
+
     for row in reader:
-        id, layer, str_coords, bit = row
+        id, layer, str_coords, bit = row[:4]
+        if len(row) > 4:
+            remainder = row[4:]
+        else:
+            remainder = ()
         layer = layer_matcher[layer]
         coords = tuple((int(coord) for coord in str_coords[1:-1].split(",")))
         coords = bit_permutation(coords)
-        writer.writerow((id, layer, coords, bit))
+        writer.writerow((id, layer, coords, bit, *remainder))
 
 
 CoordT = TypeVar("CoordT", tuple[int, int], tuple[int, int, int, int])
@@ -55,6 +77,12 @@ def parse_args():
     parser.add_argument(
         "--layers", "-l", help="file containing pt and tf layers matching"
     )
+    parser.add_argument(
+        "--from-report",
+        "-r",
+        action="store_true",
+        help="pass to skip the gold row in the injector report",
+    )
     parser.add_argument("--output", "-o", help="output file path", default="./out.csv")
     return parser.parse_args()
 
@@ -65,7 +93,9 @@ def main(args):
 
     with open(args.file_path, "r") as fr:
         with open(args.output, "w") as fw:
-            translate_fault(csv.reader(fr), csv.writer(fw), matcher, permuter)
+            translate_fault(
+                csv.reader(fr), csv.writer(fw), matcher, permuter, args.from_report
+            )
 
 
 if __name__ == "__main__":
