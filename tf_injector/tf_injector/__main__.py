@@ -76,26 +76,27 @@ def parse_args():
     return parsed_args
 
 
-def _pr(*args, end=""):
-    print(*args, end=end, flush=True)
-
-
 def main(args):
     network, dataset = load_network(args.network_name, args.dataset)
     injector = Injector(
         network,
         dataset,
-        sort_layers=args.sort_tf_layers,
     )
-    injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
-    with CampaignWriter(args.dataset, args.network_name, args.output_path) as cw:
-        injector.run_campaign(
-            batch=args.batch_size,
-            save_scores=args.save_scores,
-            gold_row_metric=gold_row_std_metric,
-            faulty_row_metric_maker=make_faulty_row_std_metric,
-            outputter=cw,
+    if args.fault_list is None:
+        top_1, top_5 = gold_row_std_metric(*injector.run_inference(args.batch_size))
+        print(
+            f"GOLD stats:\nimages: {len(dataset)}\ntop 1 accuracy: {top_1}\ntop 5 accuracy: {top_5}"
         )
+    else:
+        injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
+        with CampaignWriter(args.dataset, args.network_name, args.output_path) as cw:
+            injector.run_campaign(
+                batch=args.batch_size,
+                save_scores=args.save_scores,
+                gold_row_metric=gold_row_std_metric,
+                faulty_row_metric_maker=make_faulty_row_std_metric,
+                outputter=cw,
+            )
 
 
 if __name__ == "__main__":
