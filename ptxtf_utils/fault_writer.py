@@ -19,7 +19,7 @@ def generate_coords(
     bit_dim: int = 32,
 ) -> np.ndarray:
     """
-    Generates n random coordinates inside the interval [0, limits[i]] for each column
+    Generates n random coordinates inside the interval [0, limits[i]] for the i-th column
     """
     coords = np.zeros(
         (len(limits) + 1, n), dtype=np.uint32
