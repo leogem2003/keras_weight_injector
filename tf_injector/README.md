@@ -1,5 +1,5 @@
 # tf_injector
-Fault injector for Tensorflow2 modules.
+Fault injector for Tensorflow2 DNNs.
 
 ## Project Collaboration
 
@@ -88,8 +88,8 @@ To run an injection campaign, you will need:
 
 
 ## Outputs
-By default, a summarized report of the injection campaign is stored in reports/<dataset>/<network>/<dataset>_<network>_<datetime>.csv
-By enabling the --save-outputs flag, inference outputs are saved as numpy arrays in the same folder, as <datetime>/(clean | (fault_<inj_id)).npy
+By default, a summarized report of the injection campaign is stored in `reports/<dataset>/<network>/<dataset>_<network>_<datetime>.csv`
+By enabling the `--save-outputs` flag, inference outputs are saved as numpy arrays in the same folder, as `<datetime>/clean.npy` for the clean run, and `<datetime>/inj_<inj_id>.npy` for the faulty runs.
 
 ### Output metrics
 

@@ -14,6 +14,7 @@ Expected input format for the fault list:
 |:---------:|:------:|:---------------:|:---:|
 |         0 | conv2d |  "(2, 1, 0, 7)" |  15 |
 |         1 | conv2d | "(2, 0, 0, 14)" |   5 |
+
 This script also supports converting any csv file with arbitrary columns after "bit" (like fault reports): they will be left unchanged.
 
 > [!NOTE]
