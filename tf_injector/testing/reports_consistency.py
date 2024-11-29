@@ -20,7 +20,7 @@ def validate_reports(base_dir):
     for dt in models:
         print("validating dataset", dt)
         for model in models[dt]:
-            print("\tvalidating model", model)
+            print(f"    validating model {model}")
             csvs = sorted(glob.glob(model + "/*.csv"))
             injs = []
             all_data = {}
@@ -34,7 +34,6 @@ def validate_reports(base_dir):
                         all_data[file].append(row)
 
             for inj in injs:
-                print("\t\t\tvalidating", inj, end=" ")
                 selected = []
                 for file, finjs in all_data.items():
                     for fi in finjs:
@@ -42,11 +41,15 @@ def validate_reports(base_dir):
                             selected.append((file, fi))
                             break
                 first = selected[0][1]
-                try:
-                    assert all((i[1] == first for i in selected))
-                    print("OK")
-                except AssertionError:
-                    print("AssertionError!")
+                print(f"        validating {selected[0][0]}#{first[0]}")
+                for file, i in selected:
+                    try:
+                        assert i == first
+                    except AssertionError:
+                        print(
+                            f"        Assertion Error in file {file}\n\
+>>>>>>>> {first[4:]} vs {i[4:]}"
+                        )
 
 
 if __name__ == "__main__":
