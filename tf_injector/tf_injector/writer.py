@@ -43,7 +43,7 @@ class CampaignWriter:
         report_folder = os.path.join(report_folder_p, self.time)
         return report_folder
 
-    def write_gold(self, gold_row: tuple[int, int]):
+    def write_gold(self, gold_row: tuple[int, int, int]):
         padding = [None]
         row = ("GOLDEN", *(padding * 3), *gold_row, *(padding * 4))
         self.writer.writerow(row)
