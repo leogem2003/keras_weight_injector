@@ -65,28 +65,32 @@ def parse_args():
         default=False,
         help="Save Injection Data",
     )
-    parser.add_argument(  # useless?
-        "--sort-tf-layers",
-        action="store_true",
-        help="(Nat)Sort TF layers by name to make them match with their layer",
+    parser.add_argument(
+        "--seed", default=None, type=int, help="random seed for determinism"
     )
-
     parsed_args = parser.parse_args()
 
     return parsed_args
 
 
 def main(args):
+    if args.seed:
+        tf.config.experimental.enable_op_determinism()
+        tf.keras.utils.set_random_seed(args.seed)
+        tf.keras.backend.manual_variable_initialization(True)
+
     network, dataset = load_network(args.network_name, args.dataset)
-    injector = Injector(
-        network,
-        dataset,
-    )
+    injector = Injector(network, dataset)
+
     if args.fault_list is None:
-        top_1, top_5 = gold_row_std_metric(*injector.run_inference(args.batch_size))
+        output, labels = injector.run_inference(args.batch_size)
+        top_1, top_5 = gold_row_std_metric(output, labels)
         print(
             f"GOLD stats:\nimages: {len(dataset)}\ntop 1 accuracy: {top_1}\ntop 5 accuracy: {top_5}"
         )
+        if args.save_scores:
+            cw = CampaignWriter(args.dataset, args.network_name, args.output_path)
+            cw.save_scores(output)
     else:
         injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
         with CampaignWriter(args.dataset, args.network_name, args.output_path) as cw:

@@ -77,13 +77,13 @@ def load_network(
     # dataset_path=DEFAULT_DATASET_PATH,
 ) -> tuple[keras.Model, tf.data.Dataset]:
     model_path = os.path.join(model_path, dataset_name, network_name + ".keras")
-    print("loading model: ")
+    print("loading model ", network_name)
     model = keras.models.load_model(model_path)
-
+    print("done")
     # dataset_path = os.path.join(dataset_path, dataset_name)
     # other_dataset = tf.data.Dataset.load(dataset_path, compression="GZIP")
     assert dataset_name in SUPPORTED_DATASETS
-    print("loading dataset")
+    print("loading dataset...")
     d_load = loader(dataset_name.lower())
     print("loaded")
     dataset = d_load.map(preprocessors[dataset_name])

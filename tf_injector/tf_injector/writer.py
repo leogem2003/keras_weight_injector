@@ -14,7 +14,9 @@ class CampaignWriter:
     result path: file_dir/dataset/network/
     """
 
-    def __init__(self, dataset: str, network: str, file_dir: str = DEFAULT_REPORT_DIR):
+    def __init__(
+        self, dataset: str, network: str, file_dir: os.PathLike = DEFAULT_REPORT_DIR
+    ):
         target_dir = os.path.join(file_dir, dataset, network)
         os.makedirs(target_dir, exist_ok=True)
         self.time = datetime.now().strftime("%y%m%d_%H%M")

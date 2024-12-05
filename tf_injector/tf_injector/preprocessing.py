@@ -16,10 +16,9 @@ def make_preprocessor(mean: TransformType, std: TransformType) -> Callable:
 
     @tf.numpy_function(Tout=(tf.float32, tf.uint8), name="preproc")
     def numpy_preprocessor(
-        image: tf.Tensor, label: tf.Tensor
-    ) -> tuple[tf.Tensor, tf.Tensor]:
+        image: np.ndarray, label: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         image = np.float32(image) / np.float32(255.0)
-        # image = tf.image.convert_image_dtype(image, dtype=tf.float32)
         image = (image - mean_np) / std_np
         label = np.array(label, dtype=np.uint8)
         return image, label

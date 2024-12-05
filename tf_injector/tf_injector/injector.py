@@ -34,7 +34,6 @@ class Injector:
         Args:
             network: the target network
             dataset: the dataset on which the inferences are run
-            sort_layers: (NAT)sort layers
         """
         self.network = network
         self.dataset = dataset
@@ -45,7 +44,6 @@ class Injector:
             )  # extracts all layers
             if isinstance(layer, INJECTED_LAYERS_TYPES)
         }
-
         self.faults = FaultList()
         self.faulty = False
 
@@ -72,8 +70,6 @@ class Injector:
 
                 # get coords as a tuple of ints
                 int_coords = tuple((int(coord) for coord in coords[1:-1].split(",")))
-                # TODO: check coords correctness
-
                 if int(id) >= resume_from:
                     self.faults.faults.append((layer, int_coords, int(bit)))
 
@@ -114,7 +110,6 @@ not present in the network: {included_layers-target_layers}"
         batch_predictions: list[np.ndarray] = []
         batch_labels: list[np.ndarray] = []
         for batch in pbar:
-            # type:ignore
             data, label = batch
             batch_predictions.append(self._run_inference_on_batch(data))
             batch_labels.append(label.numpy())
