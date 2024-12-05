@@ -48,6 +48,9 @@ REPORT_HEADER = (
 )
 
 
+FAULT_HEADER = ["Injection", "Layer", "TensorIndex", "Bit"]
+
+
 def write_injection(
     layers: Sequence[tuple[str, tuple[int, ...]]],
     output: os.PathLike,
@@ -118,8 +121,12 @@ def get_pt_layers(network: nn.Module) -> list[tuple[str, tuple[int, ...]]]:
     ]
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def parse_args(args=None):
+    parser = argparse.ArgumentParser(
+        prog="fault_writer",
+        description="Writes a fault writer targeting either a PT or a TF network. See the help message for 'pt' or 'tf' for more information",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     subparsers = parser.add_subparsers(dest="framework")
 
     tf_parser = subparsers.add_parser("tf")
@@ -135,7 +142,10 @@ def parse_args():
     parser.add_argument(
         "--ninj", "-n", type=int, default=32, help="number of injections for each layer"
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--seed", "-s", type=int, default=None, help="random seed for determinism"
+    )
+    return parser.parse_args(args)
 
 
 def main(args):
@@ -146,6 +156,10 @@ def main(args):
         layers = get_pt_layers(pt_net)
     else:
         raise ValueError("framework can only be tf or pt")
+
+    if args.seed:
+        np.random.seed(args.seed)
+
     write_injection(layers, args.output, args.ninj)
 
 

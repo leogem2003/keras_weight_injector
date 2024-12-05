@@ -20,7 +20,7 @@ def translate_fault(
     reader,
     writer,
     layer_matcher: dict[str, str],
-    bit_permutation: Callable[[tuple], tuple],
+    permutation: Callable[[tuple], tuple],
     skip_row: bool = False,
 ):
     """
@@ -44,7 +44,7 @@ def translate_fault(
             remainder = ()
         layer = layer_matcher[layer]
         coords = tuple((int(coord) for coord in str_coords[1:-1].split(",")))
-        coords = bit_permutation(coords)
+        coords = permutation(coords)
         writer.writerow((id, layer, coords, bit, *remainder))
 
 
@@ -64,8 +64,12 @@ def permuter(coords: CoordT) -> CoordT:
     return permuted
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def parse_args(args=None):
+    parser = argparse.ArgumentParser(
+        prog="ptxtf_fault",
+        description="Converts a faultlist between PT and TF. As default, translates from PT to TF",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument("file_path", help="path to a csv fault list")
     parser.add_argument(
         "--pt",
@@ -73,9 +77,11 @@ def parse_args():
         action="store_true",
         help="if set, translates a tf faultlist to a pt one",
     )
-
     parser.add_argument(
-        "--layers", "-l", help="file containing pt and tf layers matching"
+        "--no-permute", "-n", action="store_true", help="if set, don't permute coords"
+    )
+    parser.add_argument(
+        "--layers", "-l", help="file containing a pt and tf layers matching"
     )
     parser.add_argument(
         "--from-report",
@@ -84,17 +90,22 @@ def parse_args():
         help="pass to skip the gold row in the injector report",
     )
     parser.add_argument("--output", "-o", help="output file path", default="./out.csv")
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def main(args):
     with open(args.layers, "r") as f:
         matcher = create_matcher(f, args.pt)
 
+    if args.no_permute:
+        permuter_f = lambda x: x
+    else:
+        permuter_f = permuter
+
     with open(args.file_path, "r") as fr:
         with open(args.output, "w") as fw:
             translate_fault(
-                csv.reader(fr), csv.writer(fw), matcher, permuter, args.from_report
+                csv.reader(fr), csv.writer(fw), matcher, permuter_f, args.from_report
             )
 
 

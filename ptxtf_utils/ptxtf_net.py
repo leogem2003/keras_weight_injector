@@ -21,17 +21,21 @@ def get_pt(path: str, name: str):
         raise ValueError("Cannot load module")
 
     spec.loader.exec_module(pt_network)
-    return getattr(pt_network, name)
+    attrs = dir(pt_network)
+    for attr in attrs:
+        if attr.lower().replace("_", "") == name.lower().replace("_", ""):
+            return getattr(pt_network, attr)
+    raise AttributeError(f"module {path} has no matching attribute for {name}")
 
 
 def get_tf(path: str):
     return keras.models.load_model(path)
 
 
-def get_pt_modules(pt_network: nn.Module, layers: tuple[nn.Module, ...]):
+def get_pt_modules(pt_network, layers):
     modules = []
     for name, module in pt_network().named_modules():
-        if isinstance(module, layers):  # type:ignore
+        if isinstance(module, layers):
             modules.append(name)
     return modules
 
@@ -56,15 +60,19 @@ def main(args):
     tf_names = get_tf_modules(tf_network, tf_layers)
     assert len(pt_names) == len(
         tf_names
-    ), f"Cannot match netowrks layers: expected the same length, got {len(pt_names)}(PT) vs {len(tf_names)}(TF)"
+    ), f"Cannot match layers: expected the same length, got {len(pt_names)}(PT) vs {len(tf_names)}(TF)"
 
     with open(args.output, "w") as f:
         f.write("PT,TF\n")
         f.writelines((f"{ptn},{tfn}\n" for ptn, tfn in zip(pt_names, tf_names)))
 
 
-def parser():
-    argparser = argparse.ArgumentParser()
+def parse_args(args=None):
+    argparser = argparse.ArgumentParser(
+        prog="ptxtf_net",
+        description="Matches PT and TF layers",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     argparser.add_argument(
         "pt_path",
         nargs=2,
@@ -79,8 +87,8 @@ def parser():
         help="save the output of the matching here",
         default="./out.txt",
     )
-    return argparser.parse_args()
+    return argparser.parse_args(args)
 
 
 if __name__ == "__main__":
-    main(parser())
+    main(parse_args())
