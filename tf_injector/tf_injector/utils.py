@@ -54,7 +54,6 @@ DEFAULT_REPORT_DIR = MODULE_PATH / "../reports"
 
 
 def _downloader(req: requests.Response, file_path):
-    return
     os.makedirs(file_path.parents[0], exist_ok=True)
     with open(file_path, "wb") as f:
         for chunk in req.iter_content(chunk_size=None):
@@ -62,7 +61,6 @@ def _downloader(req: requests.Response, file_path):
 
 
 def _extractor(file_path):
-    return
     with zipfile.ZipFile(file_path) as zipped:
         zipped.extractall(file_path.parents[0])
 

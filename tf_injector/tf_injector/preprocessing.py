@@ -23,7 +23,7 @@ def make_preprocessor(mean: TransformType, std: TransformType) -> Callable:
         label = np.array(label, dtype=np.uint8)
         return image, label
 
-    return numpy_preprocessor
+    return preprocessor
 
 
 # preprocessing data with stats from github.com/polito/PTInference
