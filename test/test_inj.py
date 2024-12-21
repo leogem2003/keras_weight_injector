@@ -12,17 +12,17 @@ def shell(*cmd, catch_error=False):
         raise RuntimeError(f"system exited with status {result}")
 
 
-def get_models(path, target_models=None):
-    datasets = get_dirs(path)
+def get_models(path, target_models):
+    datasets = target_models.keys()
     models = {}
     # models structure: dataset:[(model, tf_fault, pt_fault),...]
     for dt in datasets:
         dt_name = os.path.basename(dt)
         models[dt_name] = []
         for match, tf_fault, pt_fault in zip(
-            sorted(glob.glob(dt + "/*_match")),
-            sorted(glob.glob(dt + "/*_faultTF.csv")),
-            sorted(glob.glob(dt + "/*_faultPT.csv")),
+            sorted(glob.glob(os.path.join(path, "match", dt) + "/*")),
+            sorted(glob.glob(os.path.join(path, "TF_fault_lists", dt) + "/*")),
+            sorted(glob.glob(os.path.join(path, "PT_fault_lists", dt) + "/*")),
         ):
             models[dt_name].append(
                 (
@@ -31,11 +31,10 @@ def get_models(path, target_models=None):
                     pt_fault,
                 )
             )
-    if target_models:
-        for dt, dt_models in models.items():
-            for model in dt_models:
-                if model[0] == target_models[dt]:
-                    models[dt] = [model]
+    for dt, dt_models in models.items():
+        for model in dt_models:
+            if model[0] == target_models[dt]:
+                models[dt] = [model]
     return models
 
 
@@ -83,6 +82,7 @@ def run(models, dt=None, clean=False):
                 "python",
                 "../tf_injector/testing/output_consistency.py",
                 f"./reports/{dt}/{model}/",
+                f"> {dt}_{model}_log_output.txt",
             )
             shell(
                 "python",
@@ -93,24 +93,26 @@ def run(models, dt=None, clean=False):
                 "--from-report",
                 "--no-permute",  # report has PT layer but TF coords!
             )
+            shell(f"rm ./reports/{dt}/{model}/{dt}_{model}_legacy.csv")
             shell(
                 "python",
                 "../tf_injector/testing/reports_consistency.py",
                 f"./reports/{dt}/{model}/",
+                f"> {dt}_{model}_log_report.txt",
             )
             print("Done\n")
 
 
 def main():
     models = {
-        "CIFAR10": "MobileNetV2",
-        "CIFAR100": "ResNet18",
-        "GTSRB": "ResNet20",
+        "CIFAR10": "DenseNet121",
+        # "CIFAR100": "ResNet18",
+        # "GTSRB": "ResNet20",
     }
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # disable tf logs
-    models = get_models("./faultlists/", models)
+    models = get_models("./", models)
 
-    run(models, clean=True)
+    run(models)
 
 
 if __name__ == "__main__":
