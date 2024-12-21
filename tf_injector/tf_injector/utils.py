@@ -8,6 +8,11 @@ import shutil
 from tensorflow import keras  # type:ignore
 import tensorflow as tf
 
+from PIL import Image
+import numpy as np
+from tqdm import tqdm
+
+
 SUPPORTED_DATASETS = ["CIFAR10", "CIFAR100", "GTSRB"]
 
 SUPPORTED_MODELS = [
@@ -53,21 +58,30 @@ REPORT_HEADER = (
 DEFAULT_REPORT_DIR = MODULE_PATH / "../reports"
 
 
-def _downloader(req: requests.Response, file_path):
+def _downloader(url, file_path):
     os.makedirs(file_path.parents[0], exist_ok=True)
     with open(file_path, "wb") as f:
-        for chunk in req.iter_content(chunk_size=None):
-            f.write(chunk)
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            total = int(r.headers.get("content-length", 0))
+
+            # tqdm has many interesting parameters. Feel free to experiment!
+            tqdm_params = {
+                "total": total,
+                "miniters": 1,
+                "unit": "B",
+                "unit_scale": True,
+                "unit_divisor": 1024,
+            }
+            with tqdm(**tqdm_params) as pb:
+                for chunk in r.iter_content():
+                    pb.update(len(chunk))
+                    f.write(chunk)
 
 
 def _extractor(file_path):
     with zipfile.ZipFile(file_path) as zipped:
         zipped.extractall(file_path.parents[0])
-
-
-from PIL import Image
-import numpy as np
-from tqdm import tqdm
 
 
 def create_tf_dataset(ds_path, out_path, labels_dict):
@@ -97,16 +111,12 @@ def download_gtsrb():
     image_url = "https://sid.erda.dk/public/archives/daaeac0d7ce1152aea9b61d9f1e19370/GTSRB_Final_Test_Images.zip"
     gt_url = "https://sid.erda.dk/public/archives/daaeac0d7ce1152aea9b61d9f1e19370/GTSRB_Final_Test_GT.zip"
     gtsrb_path = DEFAULT_DATASET_PATH / "GTSRB"
-    print("Downloading dataset...", end=" ")
-    _downloader(
-        requests.get(image_url, stream=True),
-        gtsrb_path / "dataset.zip",
-    )
-    _downloader(
-        requests.get(gt_url, stream=True),
-        gtsrb_path / "gt.zip",
-    )
+
+    print("Downloading dataset...")
+    _downloader(image_url, gtsrb_path / "dataset.zip")
+    _downloader(gt_url, gtsrb_path / "gt.zip")
     print("done")
+
     print("extracting images...", end=" ")
     _extractor(gtsrb_path / "dataset.zip")
     _extractor(gtsrb_path / "gt.zip")
