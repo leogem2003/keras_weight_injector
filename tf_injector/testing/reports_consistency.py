@@ -24,30 +24,34 @@ def validate_reports(base_dir):
 def validate_model(model):
     csvs = sorted(glob.glob(model + "/*.csv"))
     injs = []
-    all_data = {}
+    all_data = []
     for file in csvs:
         with open(file, "r") as f:
             reader = csv.reader(f)
-            all_data[file] = []
+            all_data.append((file, list()))
             for row in reader:
                 if row[:4] not in injs:
                     injs.append(row[:4])
-                all_data[file].append(row)
+                all_data[-1][1].append(row)
+
     for inj in injs:
         selected = []
-        for file, finjs in all_data.items():
+        # selects all the files containing this injection
+        for file, finjs in all_data:
             for fi in finjs:
                 if inj == fi[:4]:
                     selected.append((file, fi))
                     break
-        first = selected[0][1]
+
+        first_file, first_inj = selected.pop(0)
         for file, i in selected:
             try:
-                assert i == first
+                assert i == first_inj
+                print(f"{first_inj[0]}: {first_file} vs {file} OK")
             except AssertionError:
                 print(
-                    f"{model}: Assertion Error {selected[0][0]} vs {file}:\
-{first[4:]} vs {i[4:]}"
+                    f"{first_inj[0]}: Assertion Error {first_file} vs {file}:\
+{first_inj[4:]} vs {i[4:]}"
                 )
 
 
