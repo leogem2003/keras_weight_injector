@@ -50,7 +50,7 @@ def validate_model(model):
                 print(f"{first_inj[0]}: {first_file} vs {file} OK")
             except AssertionError:
                 print(
-                    f"{first_inj[0]}: Assertion Error {first_file} vs {file}:\
+                    f"{first_inj[0]}: AssertionError {first_file} vs {file}:\
 {first_inj[4:]} vs {i[4:]}"
                 )
 

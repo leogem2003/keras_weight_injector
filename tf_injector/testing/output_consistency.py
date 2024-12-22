@@ -56,8 +56,17 @@ def test(model):
                     distance = np.sqrt(((ref - comp) ** 2).sum())
                     differences = (ref != comp).any(axis=0).sum() / ref.shape[0]
                     print(
-                        f"{inj_id}: AssertionError: {files[0]} vs {other} ({distance:.6f}, {differences*100:.6f}%)"
+                        f"{inj_id}: AssertionError: {files[0]} vs {other} ({distance:.6f}, {differences*100:.6f}%)",
+                        end=" ",
                     )
+                    comp[0, 0] = 100.0
+                    top1_diff = ref.argmax(axis=1) != comp.argmax(axis=1)
+                    if top1_diff.any():
+                        print(
+                            f"TOP1 differs ({top1_diff.sum()/len(top1_diff)*100:.6f}%)"
+                        )
+                    else:
+                        print("TOP1 does not differ")
 
 
 if __name__ == "__main__":
