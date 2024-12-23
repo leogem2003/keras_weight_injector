@@ -85,6 +85,11 @@ def run(models, dt=None, clean=False):
                 f"> {dt}_{model}_log_output.txt",
             )
             shell(
+                f"cat {dt}_{model}_log_output.txt",
+                "| grep 'TOP1 diff'",
+                f"> {dt}_{model}_log_TOP1.txt",
+            )
+            shell(
                 "python",
                 "../ptxtf_utils/ptxtf_fault.py",
                 f"./reports/{dt}/{model}/{dt}_{model}_legacy.csv",
