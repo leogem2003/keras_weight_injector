@@ -87,6 +87,7 @@ def load_network(
     d_load = loader(dataset_name.lower())
     print("loaded")
     dataset = d_load.map(preprocessors[dataset_name])
+    np.save("../test/tf_injector_dt.npy", dt_to_np(dataset))
     # test_dt_distance(
     #    dataset.as_numpy_iterator(),
     #    other_dataset.as_numpy_iterator(),
