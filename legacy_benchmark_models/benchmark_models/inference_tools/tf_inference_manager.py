@@ -49,7 +49,7 @@ class TFInferenceManager(InferenceManager):
 
         dataset_size = len(self.loader.dataset)
         inferences_count = 0
-
+        pbar = self.loader  # suppress pbar
         for batch_id, batch in enumerate(pbar):
             # print(batch_id)
             data, labels = batch
