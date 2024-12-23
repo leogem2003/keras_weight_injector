@@ -91,6 +91,13 @@ def weight_bit_flip_applied(
         layer.set_weights(weights)
 
 
+def save_dt(loader):
+    dt = []
+    for batch in loader:
+        dt.append(batch[0].numpy())
+    np.save("./legacy_injector_dt.npy", np.vstack(dt))
+
+
 def main(args):
     _, loader = get_loader(
         dataset_name=args.dataset,
@@ -98,7 +105,7 @@ def main(args):
         permute_tf=True,
         dataset_path="../datasets",
     )
-
+    save_dt(loader)
     pt_network = load_network(
         args.network_name,
         torch.device("cpu"),
@@ -220,7 +227,7 @@ def main(args):
         print("saving in", report_folder_base)
         np.save(
             os.path.join(report_folder_base, "clean.npy"),
-            np.array(inf_manager.clean_output_scores),
+            np.array(inf_manager.clean_output_scores, dtype=np.float32),
         )
 
     write_header = not os.path.exists(report_file_path)
@@ -249,7 +256,9 @@ def main(args):
                 )
 
                 clean_out_scores = np.array(inf_manager.clean_output_scores)
-                faulty_out_scores = np.array(inf_manager.faulty_output_scores)
+                faulty_out_scores = np.array(
+                    inf_manager.faulty_output_scores, dtype=np.float32
+                )
                 if args.save_scores:
                     np.save(
                         os.path.join(report_folder_base, f"inj_{inj_id}.npy"),
