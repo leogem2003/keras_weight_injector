@@ -6,6 +6,8 @@ from datetime import datetime
 
 from tf_injector.utils import REPORT_HEADER, DEFAULT_REPORT_DIR
 
+from typing import Optional
+
 
 class CampaignWriter:
     """
@@ -60,12 +62,11 @@ class CampaignWriter:
         row = (fault_id, *fault, num_injections, *fault_metrics)
         self.writer.writerow(row)
 
-    def save_scores(self, scores: np.ndarray, inj_id: int | None = None):
+    def save_scores(self, scores: np.ndarray, inj_id: Optional[int] = None):
         target_path = self.get_report_folder() + os.path.sep
         os.makedirs(target_path, exist_ok=True)
         if inj_id is None:
             target_path += "clean.npy"
         else:
             target_path += f"inj_{inj_id}.npy"
-        print("saving in", target_path)
         np.save(target_path, scores)

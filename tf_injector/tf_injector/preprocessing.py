@@ -1,26 +1,16 @@
 import tensorflow as tf  # type:ignore
-from typing import Callable, TypeAlias
-import numpy as np
+from typing import Callable
 
-TransformType: TypeAlias = tuple[float, float, float]
+TransformType = tuple[float, float, float]
 
 
 def make_preprocessor(mean: TransformType, std: TransformType) -> Callable:
-    mean_np = np.array(mean, dtype=np.float32)
-    std_np = np.array(std, dtype=np.float32)
+    # mean_np = np.array(mean, dtype=np.float32)
+    # std_np = np.array(std, dtype=np.float32)
 
     def preprocessor(image: tf.Tensor, label: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
         image = (image - mean) / std
-        return image, label
-
-    @tf.numpy_function(Tout=(tf.float32, tf.uint8), name="preproc")
-    def numpy_preprocessor(
-        image: np.ndarray, label: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-        image = np.float32(image) / np.float32(255.0)
-        image = (image - mean_np) / std_np
-        label = np.array(label, dtype=np.uint8)
         return image, label
 
     return preprocessor

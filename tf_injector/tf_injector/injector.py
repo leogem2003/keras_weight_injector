@@ -8,12 +8,12 @@ import shutil
 
 from dataclasses import dataclass, field
 from contextlib import contextmanager
-from typing import TypeAlias, Callable
+from typing import Callable, Optional
 
 from tf_injector.writer import CampaignWriter
 from tf_injector.utils import INJECTED_LAYERS_TYPES
 
-FaultType: TypeAlias = tuple[str, tuple[int, ...], int]
+FaultType = tuple[str, tuple[int, ...], int]
 
 
 @dataclass
@@ -104,9 +104,10 @@ not present in the network: {included_layers-target_layers}"
             in the second.
         """
         batched = self.dataset.batch(batch)
-        pbar = self._tqdm(
-            batched, self.faulty, "Faulty run" if self.faulty else "Clean run"
-        )
+        # pbar = self._tqdm(
+        #    batched, self.faulty, "Faulty run" if self.faulty else "Clean run"
+        # )
+        pbar = batched
         batch_predictions: list[np.ndarray] = []
         batch_labels: list[np.ndarray] = []
         for batch in pbar:
@@ -122,9 +123,9 @@ not present in the network: {included_layers-target_layers}"
         self,
         batch: int = 64,
         save_scores: bool = False,
-        gold_row_metric: Callable | None = None,
-        faulty_row_metric_maker: Callable[..., Callable] | None = None,
-        outputter: CampaignWriter | None = None,
+        gold_row_metric: Optional[Callable] = None,
+        faulty_row_metric_maker: Optional[Callable[..., Callable]] = None,
+        outputter: Optional[CampaignWriter] = None,
     ):
         """
         Runs a campaign with the loaded fault list
@@ -138,7 +139,7 @@ not present in the network: {included_layers-target_layers}"
         """
         if not self.faults.faults:
             raise RuntimeError(
-                "attempting to run a campaign without a fault list loaded"
+                "Attempting to run a campaign without a fault list loaded"
             )
         gold_scores, labels = self.run_inference(batch)  # clean run
         gold_labels = gold_scores.argmax(axis=1, keepdims=True)
