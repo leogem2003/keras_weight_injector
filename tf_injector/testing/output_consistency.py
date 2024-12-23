@@ -54,12 +54,11 @@ def test(model):
                     print(f"{inj_id}: {files[0]} vs {other} OK")
                 except AssertionError:
                     distance = np.sqrt(((ref - comp) ** 2).sum())
-                    differences = (ref != comp).any(axis=0).sum() / ref.shape[0]
+                    differences = (ref != comp).any(axis=-1).sum() / ref.shape[0]
                     print(
                         f"{inj_id}: AssertionError: {files[0]} vs {other} ({distance:.6f}, {differences*100:.6f}%)",
                         end=" ",
                     )
-                    comp[0, 0] = 100.0
                     top1_diff = ref.argmax(axis=1) != comp.argmax(axis=1)
                     if top1_diff.any():
                         print(
