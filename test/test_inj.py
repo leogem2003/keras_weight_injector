@@ -20,9 +20,9 @@ def get_models(path, target_models):
         dt_name = os.path.basename(dt)
         models[dt_name] = []
         for match, tf_fault, pt_fault in zip(
-            sorted(glob.glob(os.path.join(path, "match", dt) + "/*")),
-            sorted(glob.glob(os.path.join(path, "TF_fault_lists", dt) + "/*")),
-            sorted(glob.glob(os.path.join(path, "PT_fault_lists", dt) + "/*")),
+            sorted(glob.glob(os.path.join(path, "../ptxtf_utils/match", dt) + "/*")),
+            sorted(glob.glob(os.path.join(path, "fault_lists_tf", dt) + "/*")),
+            sorted(glob.glob(os.path.join(path, "fault_lists", dt) + "/*")),
         ):
             models[dt_name].append(
                 (
@@ -93,7 +93,7 @@ def run(models, dt=None, clean=False):
                 "python",
                 "../ptxtf_utils/ptxtf_fault.py",
                 f"./reports/{dt}/{model}/{dt}_{model}_legacy.csv",
-                f"-l ./faultlists/{dt}/{model}_match",
+                f"-l ../ptxtf_utils/match/{dt}/{model}_match",
                 f"-o ./reports/{dt}/{model}/{dt}_{model}_legacyTF.csv",
                 "--from-report",
                 "--no-permute",  # report has PT layer but TF coords!
