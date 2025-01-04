@@ -4,7 +4,7 @@ from tf_injector.utils import (
     SUPPORTED_DATASETS,
     download_gtsrb,
 )
-from tf_injector.preprocessing import preprocessors
+from tf_injector.preprocessing import preprocessors, np_preprocessors
 
 import tensorflow as tf  # type:ignore
 from tensorflow import keras  # type:ignore
@@ -64,17 +64,20 @@ def test_dt_distance(d1, d2):
 
 def dt_to_np(dt):
     batches = []
+    gt = []
     for batch, labels in dt:
         batch = batch.numpy()
+        labels = labels.numpy()
         batches.append(batch)
-    return np.stack(batches, axis=0)
+        gt.append(labels)
+    return (np.stack(batches, axis=0), np.concatenate(gt))
 
 
 def load_network(
     network_name: str,
     dataset_name: str,
     model_path=DEFAULT_MODEL_PATH,
-    # dataset_path=DEFAULT_DATASET_PATH,
+    use_np: bool = False,
 ) -> tuple[keras.Model, tf.data.Dataset]:
     model_path = os.path.join(model_path, dataset_name, network_name + ".keras")
     print("loading model ", network_name)
@@ -87,7 +90,9 @@ def load_network(
     d_load = loader(dataset_name.lower())
     print("loaded")
     dataset = d_load.map(preprocessors[dataset_name])
-    np.save("../test/tf_injector_dt.npy", dt_to_np(dataset))
+    if use_np:
+        dataset = [dataset, d_load.map(np_preprocessors[dataset_name])]
+    # np.save("../test/tf_injector_dt.npy", dt_to_np(dataset))
     # test_dt_distance(
     #    dataset.as_numpy_iterator(),
     #    other_dataset.as_numpy_iterator(),

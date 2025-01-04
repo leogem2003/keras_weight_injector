@@ -91,7 +91,19 @@ not present in the network: {included_layers-target_layers}"
         )
 
     def _run_inference_on_batch(self, data) -> np.ndarray:
-        return self.network(data).numpy()
+        result = self.network(data)
+        if not isinstance(result, list):
+            result = [result.numpy()]
+        else:
+            res = []
+            for r in result:
+                if isinstance(r, list):
+                    r = [r2.numpy() for r2 in r]
+                else:
+                    r = [r.numpy()]
+                res.append(r)
+            result = res
+        return result
 
     def run_inference(self, batch: int) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -115,8 +127,13 @@ not present in the network: {included_layers-target_layers}"
             batch_predictions.append(self._run_inference_on_batch(data))
             batch_labels.append(label.numpy())
 
-        predictions = np.concatenate(batch_predictions, axis=0)
-        labels = np.concatenate(batch_labels, axis=0)
+        if isinstance(batch_predictions[0], np.ndarray):
+            predictions = np.concatenate(batch_predictions, axis=0)
+            labels = np.concatenate(batch_labels, axis=0)
+        else:
+            predictions = batch_predictions
+            labels = batch_labels
+
         return predictions, labels
 
     def run_campaign(
