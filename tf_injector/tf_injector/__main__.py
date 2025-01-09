@@ -68,6 +68,8 @@ def parse_args():
     parser.add_argument(
         "--seed", default=None, type=int, help="random seed for determinism"
     )
+
+    parser.add_argument("--verbose", "-v", action="store_true")
     parsed_args = parser.parse_args()
 
     return parsed_args
@@ -85,15 +87,14 @@ def main(args):
     if args.fault_list is None:
         output, labels = injector.run_inference(args.batch_size)
         top_1, top_5 = gold_row_std_metric(output, labels)
-        print(
-            f"GOLD stats:\nimages: {len(dataset)}\ntop 1 accuracy: {top_1}\ntop 5 accuracy: {top_5}"
-        )
+        print(f"{top_1/len(dataset)*100:2.2f}")
+
         if args.save_scores:
             cw = CampaignWriter(args.dataset, args.network_name, args.output_path)
             cw.save_scores(output)
     else:
         injector.load_fault_list(args.fault_list, resume_from=args.resume_from)
-        with CampaignWriter(args.dataset, args.network_name, args.output_path) as cw:
+        with CampaignWriter(args.dataset, args.network_name, args.output_path, timestamp=False) as cw:
             injector.run_campaign(
                 batch=args.batch_size,
                 save_scores=args.save_scores,

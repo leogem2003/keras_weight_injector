@@ -17,13 +17,13 @@ class CampaignWriter:
     """
 
     def __init__(
-        self, dataset: str, network: str, file_dir: os.PathLike = DEFAULT_REPORT_DIR
+        self, dataset: str, network: str, file_dir: os.PathLike = DEFAULT_REPORT_DIR, timestamp:bool=True
     ):
         target_dir = os.path.join(file_dir, dataset, network)
         os.makedirs(target_dir, exist_ok=True)
         self.time = datetime.now().strftime("%y%m%d_%H%M")
         self.filepath = os.path.join(
-            target_dir, self.get_filename(dataset, network, self.time)
+            target_dir, self.get_filename(dataset, network, self.time if timestamp else None)
         )
 
     def __enter__(self) -> "CampaignWriter":
@@ -39,8 +39,11 @@ class CampaignWriter:
         self.file.close()
 
     @staticmethod
-    def get_filename(dataset: str, network: str, time: str) -> str:
-        return f"{dataset}_{network}_{time}.csv"
+    def get_filename(dataset: str, network: str, time: Optional[str]) -> str:
+        if time:
+            return f"{dataset}_{network}_{time}.csv"
+        else:
+            return f"{dataset}_{network}.csv"
 
     def get_report_folder(self) -> str:
         report_folder_p = os.path.dirname(self.filepath)

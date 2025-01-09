@@ -43,7 +43,8 @@ INJECTED_LAYERS_TYPES = (keras.layers.Conv2D, keras.layers.Dense)
 
 REPORT_HEADER = (
     "inj_id",
-    "layer_weigths",
+    "layer",
+    "weigths",
     "bit_pos",
     "n_injections",
     "top_1_correct",
@@ -64,8 +65,6 @@ def _downloader(url, file_path):
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
             total = int(r.headers.get("content-length", 0))
-
-            # tqdm has many interesting parameters. Feel free to experiment!
             tqdm_params = {
                 "total": total,
                 "miniters": 1,
@@ -73,8 +72,9 @@ def _downloader(url, file_path):
                 "unit_scale": True,
                 "unit_divisor": 1024,
             }
+
             with tqdm(**tqdm_params) as pb:
-                for chunk in r.iter_content():
+                for chunk in r.iter_content(chunk_size=1024*32):
                     pb.update(len(chunk))
                     f.write(chunk)
 
@@ -85,7 +85,6 @@ def _extractor(file_path):
 
 
 def create_tf_dataset(ds_path, out_path, labels_dict):
-    print("creating dataset", ds_path)
     imgs = []
     labels = []
     for file in tqdm(sorted(os.listdir(ds_path))):
@@ -100,11 +99,8 @@ def create_tf_dataset(ds_path, out_path, labels_dict):
 
     labels = np.array([labels], dtype=np.uint8).T
     imgs = np.asarray(imgs)
-    print(imgs.shape)
-    print("packing into TF dataset...")
     dt = tf.data.Dataset.from_tensor_slices((imgs, labels))
     dt.save(str(out_path), compression="GZIP")
-    print("done")
 
 
 def download_gtsrb():
