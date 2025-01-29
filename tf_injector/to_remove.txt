@@ -1,0 +1,5 @@
+CIFAR10
+Resnet110
+Resnet1202
+Resnet56
+Vgg16-19

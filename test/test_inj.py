@@ -1,7 +1,6 @@
 import os
 import glob
 import csv
-import numpy as np
 
 def get_dirs(dir):
     return (d.__fspath__() for d in os.scandir(dir) if d.is_dir())

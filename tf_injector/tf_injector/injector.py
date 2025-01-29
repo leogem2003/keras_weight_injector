@@ -88,7 +88,7 @@ not present in the network: {included_layers-target_layers}"
             colour="red" if faulty else "green",
             desc=desc,
             ncols=shutil.get_terminal_size().columns,
-            file=open("/dev/null", 'w')
+            #file=open("/dev/null", 'w')
         )
 
     def _run_inference_on_batch(self, data) -> np.ndarray:
