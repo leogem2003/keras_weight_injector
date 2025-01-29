@@ -80,12 +80,16 @@ def parse_args():
 
 def inspect_layers(inspector, network, dt):
     d1, d2 = dt
-    np1 = dt_to_np(d1)[:512]
-    np2 = dt_to_np(d2)[:512]
+    np1, _ = dt_to_np(d1)
+    np2, _ = dt_to_np(d2)
+
+    np1 = np1[:512]
+    np2 = np2[:512]
+
     res1 = network(np1).numpy()
     res2 = network(np2).numpy()
     eq_idxs = (res1 == res2).any(axis=1)
-    print("found %d different results" % len(eq_idxs))
+    print("found %d equal results" % eq_idxs.sum())
     c1 = np1[eq_idxs][:1]
     c2 = np2[eq_idxs][:1]
     analysis = inspector.compare(c1, c2, diff_composite)
@@ -161,7 +165,7 @@ def main(args):
     )
     if args.inspect:
         inspector = Inspector(network)
-        # inspect_layers(inspector, network, dataset)
+        inspect_layers(inspector, network, dataset)
         test_noise(inspector, dataset)
         return
 
