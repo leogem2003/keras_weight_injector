@@ -21,7 +21,7 @@ source venv_name/bin/activate
 ```
 pip install -r requirements.txt
 ```
-## Available Models (so far)
+## Available Models
 
 The Keras versions of the models, when available, are obtained using the [nobuco](https://github.com/AlexanderLutsenko/nobuco) PyTorch to Keras converter.
 The Keras versions of all models share the same structure and weigths, and have similar accuracies to their PyTorch counterpart.
@@ -30,59 +30,62 @@ The Keras versions of all models share the same structure and weigths, and have 
 Here is a list of models trained for CIFAR10 dataset, that has images belonging to 10 classes.
 All the models are validated using the CIFAR10 validation set, that cointains 10000 images.
 
-| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |  Sources  | Notes     |
-| ------------ | ----------------------- | -------------------- |---------- |-----------|
-| ResNet20     | 91.5 %                  | 91.5 %               |           |           |
-| ResNet32     | 92.3 %                  | 92.3 %               |           |           |
-| ResNet44     | 92.8 %                  | 92.8 %               |           |           |
-| ResNet56     | 93.3 %                  | 93.3 %               |           |           |
-| ResNet110    | 93.5 %                  | 93.5 %               |           |           |
-| MobileNetV2  | 91.7 %                  | 91.7 %               |           |           |
-| Vgg19_bn     | 93.2 %                  | 93.2 %               |           |           |
-| Vgg16_bn     | 93.5 %                  | 93.5 %               |           |           |
-| Vgg13_bn     | 93.8 %                  | 93.8 %               |           |           | 
-| Vgg11_bn     | 91.3 %                  | 91.3 %               |           |           |
-| DenseNet121  | 93.2 %                  | 93.1 %               |           |           | 
-| DenseNet161  | 93.1 %                  | 93.1 %               |           |           |          
-| GoogLeNet    | 92.2 %                  | 92.2 %               |           |           | 
+| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |
+| ------------ | ----------------------- | -------------------- |
+| ResNet20     | 91.5 %                  | 91.5 %               |
+| ResNet32     | 92.3 %                  | 92.3 %               |
+| ResNet44     | 92.8 %                  | 92.8 %               |
+| ResNet56     | 93.3 %                  | 93.3 %               |
+| ResNet110    | 93.5 %                  | 93.5 %               |
+| MobileNetV2  | 91.7 %                  | 91.7 %               |
+| Vgg19_bn     | 93.2 %                  | 93.2 %               |
+| Vgg16_bn     | 93.5 %                  | 93.5 %               |
+| Vgg13_bn     | 93.8 %                  | 93.8 %               |
+| Vgg11_bn     | 91.3 %                  | 91.3 %               |
+| DenseNet121  | 93.2 %                  | 93.1 %               |
+| DenseNet161  | 93.1 %                  | 93.1 %               |
+| GoogLeNet    | 92.2 %                  | 92.2 %               |
 
 ### CIFAR-100 Models
 Here is a list of models trained for CIFAR100 dataset, that has images belonging to 100 classes.
 All the models are validated using the CIFAR100 validation set, that cointains 10000 images.
 
-| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |  Sources  | Notes                     |
-| ------------ | ----------------------- |--------------------- |---------- | ------------------------- |
-| ResNet18     | 76.2 %                  | 76.2 %               |           |                           |
-| DenseNet121  | 78.7 %                  | 78.7 %               |           |                           |
-| GoogLeNet    | 76.3 %                  | 76.3 %               |           |                           |
+| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |
+| ------------ | ----------------------- |--------------------- |
+| ResNet18     | 76.2 %                  | 76.2 %               |
+| DenseNet121  | 78.7 %                  | 78.7 %               |
+| GoogLeNet    | 76.3 %                  | 76.3 %               |
 
 ### GTSRB Models
 Here is a list of models trained for GTSRB dataset, containing 43 classes of German Traffic signals.
 All the models are validated using the GTSRB validation set, that cointains 12640 images.
 
-| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |  Sources  | Notes                     |
-| ------------ | ----------------------- |--------------------- |---------- | ------------------------- |
-| ResNet20     | 94.3%                   | 94.3%                |           |                           |
-| DenseNet121  | 96.5%                   | 96.5%                |           |                           |
-| Vgg11_bn     | 95.5%                   | 95.5%                |           |                           |
+| Model        | PyTorch TOP-1 Accuracy  | Keras TOP-1 Accuracy |
+| ------------ | ----------------------- |--------------------- |
+| ResNet20     | 94.3%                   | 94.3%                |
+| DenseNet121  | 96.5%                   | 96.5%                |
+| Vgg11_bn     | 95.5%                   | 95.5%                |
 
 ## Dataset transformation
+> [!NOTE]
+> All the metrics reported in this README refer to the NumPy preprocessing displayed below. An equivalent TensorFlow preprocessing is available through the `--use-tf` flag, but it may lead to slightly different results. 
+
 ### CIFAR10
 ```
-image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+image = image / np.float32(255.0)
 image = (image - (0.4914, 0.4822, 0.4465)) / (0.2023, 0.1994, 0.2010)
 ```
 
 ### CIFAR100
 ```
-image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+image = image / np.float32(255.0)
 image = (image - (0.5070751592371323, 0.48654887331495095, 0.4409178433670343)) / (0.2673342858792401, 0.2564384629170883, 0.27615047132568404)
 ```
 
 ### GTSRB
 ```
-image = tf.image.resize(image, [50, 50])
-image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+image = tf.image.resize(image, [50, 50]).numpy()
+image = image / np.float32(255.0)
 image = (image - (0.3403, 0.3121, 0.3214)) / (0.2724, 0.2608, 0.2669)
 ```
 ## Usage
@@ -122,7 +125,7 @@ By enabling the `--save-outputs` flag, inference outputs are saved as numpy arra
     - `top_1_correct`: the label with the maximum score equals the test label (correct inference)
     - `top_5_correct`: the test label is inside the set of the labels which gained the five highest scores
     - `top_1_robust`: Same as top_1_correct, but compared with the predicted labels of the golden inference 
-    - `top_5_robust`: Same as top__correct, but compared with the predicted labels of the golden inference 
+    - `top_5_robust`: Same as top_5_correct, but compared with the predicted labels of the golden inference 
 
 
 | top_1_correct | top_5_correct | top_1_robust | top_5_robust |
