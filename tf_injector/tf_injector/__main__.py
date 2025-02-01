@@ -2,8 +2,6 @@ import argparse
 
 import tensorflow as tf  # type:ignore
 
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
 from tf_injector.utils import SUPPORTED_MODELS, SUPPORTED_DATASETS, DEFAULT_REPORT_DIR
 from tf_injector.loader import load_network
 from tf_injector.injector import Injector
@@ -62,9 +60,16 @@ def parse_args():
         "--save-scores",
         "-s",
         action="store_true",
-        default=False,
         help="Save Injection Data",
     )
+
+    parser.add_argument(
+        "--use-tf",
+        "-u",
+        action="store_true",
+        help="Use TensorFlow instead of NumPy for dataset preprocessing"
+    )
+
     parser.add_argument(
         "--seed", default=None, type=int, help="random seed for determinism"
     )
@@ -79,7 +84,7 @@ def main(args):
         tf.keras.utils.set_random_seed(args.seed)
         tf.keras.backend.manual_variable_initialization(True)
 
-    network, dataset = load_network(args.network_name, args.dataset)
+    network, dataset = load_network(args.network_name, args.dataset, use_tf=args.use_tf)
     injector = Injector(network, dataset)
 
     if args.fault_list is None:

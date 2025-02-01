@@ -4,12 +4,10 @@ from tf_injector.utils import (
     SUPPORTED_DATASETS,
     download_gtsrb,
 )
-from tf_injector.preprocessing import preprocessors
+from tf_injector.preprocessing import preprocessors, np_preprocessors
 
 import tensorflow as tf  # type:ignore
 from tensorflow import keras  # type:ignore
-
-# import tensorflow_datasets as tfds
 
 import os
 
@@ -51,7 +49,7 @@ loaders = {
 def loader(dataset_name: str):
     return loaders[dataset_name]()
 
-
+# testing helpers
 def test_dt_distance(d1, d2):
     assert d1.shape == d2.shape, f"shapes differ: {d1.shape, d2.shape}"
     for dt1_l, dt2_l in tqdm.tqdm(zip(d1, d2), "running dataset test"):
@@ -74,22 +72,19 @@ def load_network(
     network_name: str,
     dataset_name: str,
     model_path=DEFAULT_MODEL_PATH,
-    # dataset_path=DEFAULT_DATASET_PATH,
+    use_tf: bool = False
 ) -> tuple[keras.Model, tf.data.Dataset]:
     model_path = os.path.join(model_path, dataset_name, network_name + ".keras")
     print("loading model ", network_name)
     model = keras.models.load_model(model_path)
     print("done")
-    # dataset_path = os.path.join(dataset_path, dataset_name)
-    # other_dataset = tf.data.Dataset.load(dataset_path, compression="GZIP")
     assert dataset_name in SUPPORTED_DATASETS
     print("loading dataset...")
     d_load = loader(dataset_name.lower())
     print("loaded")
-    dataset = d_load.map(preprocessors[dataset_name])
-    np.save("../test/tf_injector_dt.npy", dt_to_np(dataset))
-    # test_dt_distance(
-    #    dataset.as_numpy_iterator(),
-    #    other_dataset.as_numpy_iterator(),
-    # )
+    if use_tf:
+        dataset = d_load.map(preprocessors[dataset_name])
+    else:
+        dataset = d_load.map(np_preprocessors[dataset_name])
+
     return model, dataset
