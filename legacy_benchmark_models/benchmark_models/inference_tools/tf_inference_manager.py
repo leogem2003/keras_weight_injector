@@ -29,15 +29,6 @@ class TFInferenceManager(InferenceManager):
         """
         # Start measuring the time elapsed
         start_time = time.time()
-
-        # Cycle all the batches in the data loader
-        pbar = tqdm(
-            self.loader,
-            colour="red" if faulty else "green",
-            desc="Faulty Run" if faulty else "Clean Run",
-            ncols=shutil.get_terminal_size().columns,
-        )
-
         if not faulty:
             self.clean_inference_counts = 0
             self.clean_labels = []

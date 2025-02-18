@@ -1,21 +1,25 @@
 import tensorflow as tf  # type:ignore
 from typing import Callable
+import numpy as np
 
 TransformType = tuple[float, float, float]
 
 
 def make_preprocessor(mean: TransformType, std: TransformType) -> Callable:
-    # mean_np = np.array(mean, dtype=np.float32)
-    # std_np = np.array(std, dtype=np.float32)
+    mean_np = np.array(mean, dtype=np.float32)
+    std_np = np.array(std, dtype=np.float32)
 
-    def preprocessor(image: tf.Tensor, label: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
-        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-        image = (image - mean) / std
-        return image, label
+    @tf.numpy_function(Tout=[tf.float32, tf.uint8])
+    def preprocessor(
+        image: np.ndarray, label: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        image = np.array(image, dtype=np.float32)
+        image = image / np.float32(255.0)
+        image = (image - mean_np) / std_np
+        return image, np.array(label, np.uint8)
 
     return preprocessor
-
-
+   
 # preprocessing data with stats from github.com/polito/PTInference
 preprocessors = {
     "CIFAR10": make_preprocessor((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),

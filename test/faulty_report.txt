@@ -1,5 +1,0 @@
-top1, top5, top1_robust, top5_robust, n_injections, masked, non_critical, critical
-CIFAR10  DenseNet121       93.16    99.75   100.00   100.00     0.78    99.22     0.01
-dataset, model, top1, top5, top1_robust, top5_robust, masked, non_critical, critical
-CIFAR10,DenseNet121,   93.16,   99.75,  100.00,  100.00,    0.78,   99.22,    0.01
-CIFAR10,DenseNet161,   93.05,   99.72,  100.00,  100.00,   47.62,   52.38,    0.00
